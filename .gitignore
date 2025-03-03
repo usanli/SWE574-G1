@@ -31,4 +31,12 @@ logs/
 htmlcov/
 
 # Docker
-.dockerignore 
+.dockerignore
+docker-compose.override.yml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Git Merge and Conflict files
+*.orig
