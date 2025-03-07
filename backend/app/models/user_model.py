@@ -52,3 +52,18 @@ class UserModel:
             return None
             
         return user 
+
+    @staticmethod
+    def update_user(user_id: str, update_data: dict) -> dict:
+        """Update a user in the database"""
+        # Add updated timestamp
+        update_data["updated_at"] = datetime.utcnow()
+        
+        # Update in database
+        users_collection.update_one(
+            {"id": user_id},
+            {"$set": update_data}
+        )
+        
+        # Return updated user
+        return UserModel.get_user_by_id(user_id) 
