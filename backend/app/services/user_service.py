@@ -4,7 +4,8 @@ from datetime import timedelta
 
 from ..schemas.user_schema import UserCreate, UserInDB, Token, UserUpdate
 from ..models.user_model import UserModel
-from ..core.security import create_access_token, get_password_hash
+from ..core.auth.jwt import create_access_token
+from ..core.auth.password import get_password_hash
 from ..core.config import settings
 
 class UserService:

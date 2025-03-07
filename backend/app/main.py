@@ -1,12 +1,10 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordBearer
-from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 
 from .core.config import settings
 from .routers import auth, users
-from .core.security import oauth2_scheme
+from .core.auth.dependencies import oauth2_scheme
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -27,6 +25,40 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(users.router)
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    
+    # Add security scheme
+    openapi_schema["components"] = openapi_schema.get("components", {})
+    openapi_schema["components"]["securitySchemes"] = {
+        "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    }
+    
+    # Apply security to all operations
+    if "paths" in openapi_schema:
+        for path in openapi_schema["paths"].values():
+            for operation in path.values():
+                # Skip the login and register endpoints
+                if operation.get("operationId") not in ["login_login_post", "register_register_post"]:
+                    operation["security"] = [{"bearerAuth": []}]
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 @app.get("/", tags=["root"])
 async def root():

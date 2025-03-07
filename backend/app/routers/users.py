@@ -3,7 +3,7 @@ from typing import List
 
 from ..schemas.user_schema import UserUpdate, UserResponse, UserInDB
 from ..services.user_service import UserService
-from ..core.security import get_current_user
+from ..core.auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/users", tags=["users"])
 
