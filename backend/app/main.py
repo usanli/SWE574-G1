@@ -1,8 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
 
 from .core.config import settings
-from .routers import auth
+from .routers import auth, users
+from .core.security import oauth2_scheme
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -22,6 +26,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router)
+app.include_router(users.router)
 
 @app.get("/", tags=["root"])
 async def root():

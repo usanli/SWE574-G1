@@ -2,9 +2,9 @@ from typing import Optional
 from fastapi import HTTPException, status
 from datetime import timedelta
 
-from ..schemas.user_schema import UserCreate, UserInDB, Token
+from ..schemas.user_schema import UserCreate, UserInDB, Token, UserUpdate
 from ..models.user_model import UserModel
-from ..core.security import create_access_token
+from ..core.security import create_access_token, get_password_hash
 from ..core.config import settings
 
 class UserService:
@@ -52,4 +52,27 @@ class UserService:
             subject=user["id"], expires_delta=access_token_expires
         )
         
-        return Token(access_token=access_token) 
+        return Token(access_token=access_token)
+    
+    @staticmethod
+    def update_user(user_id: str, update_data: UserUpdate) -> UserInDB:
+        """Update user profile"""
+        # Get existing user
+        user = UserModel.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+            
+        # Prepare update data
+        update_dict = update_data.dict(exclude_unset=True)
+        
+        # Hash password if it's being updated
+        if "password" in update_dict and update_dict["password"]:
+            update_dict["password"] = get_password_hash(update_dict["password"])
+            
+        # Update user
+        updated_user = UserModel.update_user(user_id, update_dict)
+        
+        return UserInDB(**updated_user) 
