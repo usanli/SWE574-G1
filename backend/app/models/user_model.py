@@ -4,7 +4,7 @@ from typing import List, Optional
 import uuid
 
 from ..core.database import users_collection
-from ..core.security import get_password_hash, verify_password
+from ..core.auth.password import get_password_hash, verify_password
 
 class UserModel:
     @staticmethod
@@ -15,6 +15,10 @@ class UserModel:
         
         # Hash the password
         user_data["password"] = get_password_hash(user_data["password"])
+        
+        # Convert date_of_birth from date to datetime if present
+        if "date_of_birth" in user_data and isinstance(user_data["date_of_birth"], date):
+            user_data["date_of_birth"] = datetime.combine(user_data["date_of_birth"], datetime.min.time())
         
         # Set default values
         user_data["badges"] = user_data.get("badges", [])
@@ -51,13 +55,21 @@ class UserModel:
         if not verify_password(password, user["password"]):
             return None
             
-        return user 
-
+        return user
+        
     @staticmethod
     def update_user(user_id: str, update_data: dict) -> dict:
         """Update a user in the database"""
         # Add updated timestamp
         update_data["updated_at"] = datetime.utcnow()
+        
+        # If password is being updated, hash it
+        if "password" in update_data and update_data["password"]:
+            update_data["password"] = get_password_hash(update_data["password"])
+        
+        # Convert date_of_birth from date to datetime if present
+        if "date_of_birth" in update_data and isinstance(update_data["date_of_birth"], date):
+            update_data["date_of_birth"] = datetime.combine(update_data["date_of_birth"], datetime.min.time())
         
         # Update in database
         users_collection.update_one(
