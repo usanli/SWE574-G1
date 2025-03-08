@@ -19,16 +19,14 @@ async def create_mystery(
 @router.get("", response_model=List[MysteryResponse])
 async def list_mysteries(
     skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
-    current_user: UserInDB = Depends(get_current_user)
+    limit: int = Query(10, ge=1, le=100)
 ):
     """List mysteries with pagination"""
     return MysteryService.list_mysteries(skip, limit)
 
 @router.get("/{mystery_id}", response_model=MysteryResponse)
 async def get_mystery_by_id(
-    mystery_id: str = Path(..., title="The ID of the mystery"),
-    current_user: UserInDB = Depends(get_current_user)
+    mystery_id: str = Path(..., title="The ID of the mystery")
 ):
     """Get a mystery by ID"""
     return MysteryService.get_mystery_by_id(mystery_id)

@@ -18,8 +18,7 @@ async def create_comment(
 
 @router.get("/mystery/{mystery_id}", response_model=List[CommentResponse])
 async def list_mystery_comments(
-    mystery_id: str = Path(..., title="The ID of the mystery to get comments for"),
-    current_user: UserInDB = Depends(get_current_user)
+    mystery_id: str = Path(..., title="The ID of the mystery to get comments for")
 ):
     """List all comments for a mystery"""
     return CommentService.list_comments_by_mystery(mystery_id)
