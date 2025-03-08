@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
 from .core.config import settings
-from .routers import auth, users
+from .routers import auth, users, mysteries, comments
 from .core.auth.dependencies import oauth2_scheme
 
 app = FastAPI(
@@ -25,6 +25,8 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(mysteries.router)
+app.include_router(comments.router)
 
 def custom_openapi():
     if app.openapi_schema:
