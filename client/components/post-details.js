@@ -12,6 +12,7 @@ import {
   User,
   Eye,
   Share2,
+  Layers,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,12 @@ import { formatDate } from "@/lib/utils";
 import SimilarPostCard from "@/components/similar-post-card";
 import PostComments from "@/components/post-comments";
 import PostSkeleton from "@/components/post-skeleton";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function PostDetails({ postId }) {
   const [post, setPost] = useState(null);
@@ -177,6 +184,83 @@ export default function PostDetails({ postId }) {
                   <p key={index}>{paragraph}</p>
                 ))}
               </div>
+
+              {/* Object Parts Section */}
+              {post.parts && post.parts.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="mb-3 flex items-center gap-2 text-lg font-medium">
+                    <Layers className="h-5 w-5" />
+                    Object Parts
+                  </h3>
+                  <Accordion type="single" collapsible className="w-full">
+                    {post.parts.map((part, index) => (
+                      <AccordionItem key={part.id} value={part.id}>
+                        <AccordionTrigger className="text-base font-medium">
+                          {part.name}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-4">
+                            {/* Attributes */}
+                            {Object.keys(part.attributes).length > 0 && (
+                              <div>
+                                <h4 className="mb-2 text-sm font-medium">
+                                  Attributes
+                                </h4>
+                                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                                  {Object.entries(part.attributes).map(
+                                    ([key, value]) => (
+                                      <div
+                                        key={key}
+                                        className="flex items-start gap-2 rounded-md border p-2"
+                                      >
+                                        <span className="font-medium capitalize">
+                                          {key}:
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                          {value}
+                                        </span>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Measurements */}
+                            {part.measurements &&
+                              Object.keys(part.measurements).length > 0 && (
+                                <div>
+                                  <h4 className="mb-2 text-sm font-medium">
+                                    Measurements
+                                  </h4>
+                                  <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                                    {Object.entries(part.measurements).map(
+                                      ([key, value]) => (
+                                        <div
+                                          key={key}
+                                          className="flex items-start gap-2 rounded-md border p-2"
+                                        >
+                                          <span className="font-medium capitalize">
+                                            {key}:
+                                          </span>
+                                          <span className="text-muted-foreground">
+                                            {value.isRange
+                                              ? `${value.min} - ${value.max} ${value.unit}`
+                                              : `${value.value} ${value.unit}`}
+                                          </span>
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+              )}
 
               {post.images.additional && post.images.additional.length > 0 && (
                 <div className="mt-6">

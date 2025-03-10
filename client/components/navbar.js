@@ -8,9 +8,10 @@ import { Menu, Plus } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Sidebar from "./sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Navbar() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, logout, quickLogin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
@@ -47,13 +48,29 @@ export default function Navbar() {
             </Button>
           </Link>
           {isAuthenticated ? (
-            <Link href="/profile">
-              <Button variant="ghost" size="sm">
-                Profile
+            <div className="flex items-center gap-2">
+              <Link href={`/profile`}>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={user?.profile_picture_url} />
+                    <AvatarFallback>
+                      {user?.name?.substring(0, 2).toUpperCase() || "TU"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline">
+                    {user?.name || "Test User"}
+                  </span>
+                </Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={logout}>
+                Logout
               </Button>
-            </Link>
+            </div>
           ) : (
             <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={quickLogin}>
+                Quick Login
+              </Button>
               <Link href="/login">
                 <Button variant="ghost" size="sm">
                   Login
