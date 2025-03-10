@@ -1,40 +1,48 @@
 // Mock data for posts since the API endpoint is not set up yet
 import { enrichedMysteries } from "./post-api";
 
-export const MOCK_POSTS = enrichedMysteries.map((mystery) => ({
-  id: mystery.id,
-  title: mystery.title,
-  image: mystery.images.main,
-  tags: mystery.tags,
-  upvotes: mystery.votes.filter((vote) => vote.type === "upvote").length,
-  commentCount: mystery.comments.length,
-  status: mystery.solved_by ? "solved" : "unsolved",
-  createdAt: mystery.created_at,
-  author: {
-    name: mystery.anonymous ? "Anonymous" : mystery.author.username,
-    avatar: mystery.anonymous
-      ? "/placeholder.svg?height=40&width=40"
-      : mystery.author.profile_picture_url,
-  },
-}));
+export const MOCK_POSTS = enrichedMysteries.map((mystery) => {
+  // Generate a random number of downvotes (between 0 and half the upvotes)
+  const upvotes = mystery.votes.filter((vote) => vote.type === "upvote").length;
+  const randomDownvotes = Math.floor(Math.random() * (upvotes / 2 + 1));
+
+  return {
+    id: mystery.id,
+    title: mystery.title,
+    description: mystery.description,
+    image: mystery.images.main,
+    tags: mystery.tags,
+    upvotes: upvotes,
+    downvotes: randomDownvotes,
+    commentCount: mystery.comments.length,
+    status: mystery.solved_by ? "solved" : "unsolved",
+    createdAt: mystery.created_at,
+    author: {
+      name: mystery.anonymous ? "Anonymous" : mystery.author.username,
+      avatar: mystery.anonymous
+        ? "/placeholder.svg?height=40&width=40"
+        : mystery.author.profile_picture_url,
+    },
+  };
+});
 
 // Function to simulate fetching posts from an API
 export async function getPosts(
   page = 1,
-  limit = 6,
+  limit = 9,
   sortBy = "recent",
-  category = "all"
+  filter = "all"
 ) {
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 800));
 
   let filteredPosts = [...MOCK_POSTS];
 
-  // Filter by category if not 'all'
-  if (category !== "all") {
-    filteredPosts = filteredPosts.filter((post) =>
-      post.tags.some((tag) => tag.toLowerCase() === category.toLowerCase())
-    );
+  // Filter posts based on status
+  if (filter === "solved") {
+    filteredPosts = filteredPosts.filter((post) => post.status === "solved");
+  } else if (filter === "unsolved") {
+    filteredPosts = filteredPosts.filter((post) => post.status === "unsolved");
   }
 
   // Sort posts based on sortBy parameter
@@ -44,11 +52,10 @@ export async function getPosts(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
       break;
-    case "solved":
-      filteredPosts = filteredPosts.filter((post) => post.status === "solved");
-      break;
-    case "most-discussed":
-      filteredPosts.sort((a, b) => b.commentCount - a.commentCount);
+    case "popular":
+      filteredPosts.sort(
+        (a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes)
+      );
       break;
     default:
       filteredPosts.sort(

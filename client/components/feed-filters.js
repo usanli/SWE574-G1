@@ -8,18 +8,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Clock, CheckCircle, MessageSquare } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { getCategories } from "@/lib/api";
+import { ChevronDown, Clock, TrendingUp } from "lucide-react";
 
 export default function FeedFilters() {
-  const { sortBy, setSortBy, category, setCategory } = useFeed();
-  const categories = ["all", ...getCategories()];
+  const { sortBy, setSortBy, filter, setFilter } = useFeed();
 
   const sortOptions = [
     { value: "recent", label: "Most Recent", icon: Clock },
-    { value: "solved", label: "Solved Only", icon: CheckCircle },
-    { value: "most-discussed", label: "Most Discussed", icon: MessageSquare },
+    { value: "popular", label: "Most Popular", icon: TrendingUp },
   ];
 
   const currentSort = sortOptions.find((option) => option.value === sortBy);
@@ -34,6 +30,32 @@ export default function FeedFilters() {
       </div>
 
       <div className="flex flex-wrap gap-2">
+        <div className="flex rounded-md border">
+          <Button
+            variant="ghost"
+            className={`rounded-none ${filter === "all" ? "bg-muted" : ""}`}
+            onClick={() => setFilter("all")}
+          >
+            All
+          </Button>
+          <Button
+            variant="ghost"
+            className={`rounded-none ${filter === "solved" ? "bg-muted" : ""}`}
+            onClick={() => setFilter("solved")}
+          >
+            Solved
+          </Button>
+          <Button
+            variant="ghost"
+            className={`rounded-none ${
+              filter === "unsolved" ? "bg-muted" : ""
+            }`}
+            onClick={() => setFilter("unsolved")}
+          >
+            Unsolved
+          </Button>
+        </div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="gap-1">
@@ -55,43 +77,6 @@ export default function FeedFilters() {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-1">
-              Categories
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {categories.map((cat) => (
-              <DropdownMenuItem
-                key={cat}
-                onClick={() => setCategory(cat)}
-                className="capitalize"
-              >
-                {cat === "all" ? "All Categories" : cat}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {category !== "all" && (
-          <Badge
-            variant="secondary"
-            className="flex items-center gap-1 capitalize"
-          >
-            {category}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-4 w-4 p-0 hover:bg-transparent"
-              onClick={() => setCategory("all")}
-            >
-              ×
-            </Button>
-          </Badge>
-        )}
       </div>
     </div>
   );

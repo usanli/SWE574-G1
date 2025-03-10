@@ -28,6 +28,7 @@ import {
   getUserComments,
 } from "@/lib/user-api";
 import PostCard from "@/components/post-card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function UserProfile({ username }) {
   const [user, setUser] = useState(null);
@@ -59,7 +60,7 @@ export default function UserProfile({ username }) {
   }, [username]);
 
   if (loading || !user) {
-    return null; // Skeleton is handled by the parent component
+    return <ProfileSkeleton />;
   }
 
   // Calculate stats
@@ -71,6 +72,35 @@ export default function UserProfile({ username }) {
       total + (sub.votes?.filter((vote) => vote.type === "upvote").length || 0)
     );
   }, 0);
+
+  // Format submissions for PostCard component
+  const formattedSubmissions = submissions.map((submission) => {
+    // Calculate upvotes
+    const upvotes =
+      submission.votes?.filter((vote) => vote.type === "upvote").length || 0;
+
+    // Generate random downvotes (between 0 and half the upvotes)
+    const randomDownvotes = Math.floor(Math.random() * (upvotes / 2 + 1));
+
+    return {
+      id: submission.id,
+      title: submission.title,
+      description: submission.description,
+      image: submission.images.main,
+      tags: submission.tags,
+      upvotes: upvotes,
+      downvotes: randomDownvotes,
+      commentCount: submission.comments?.length || 0,
+      status: submission.solved_by ? "solved" : "unsolved",
+      createdAt: submission.created_at,
+      author: {
+        name: submission.anonymous ? "Anonymous" : user.username,
+        avatar: submission.anonymous
+          ? "/placeholder.svg?height=40&width=40"
+          : user.profile_picture_url,
+      },
+    };
+  });
 
   return (
     <div className="space-y-8">
@@ -152,9 +182,9 @@ export default function UserProfile({ username }) {
         </TabsList>
 
         <TabsContent value="submissions" className="mt-6">
-          {submissions.length > 0 ? (
+          {formattedSubmissions.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {submissions.map((post) => (
+              {formattedSubmissions.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
             </div>
@@ -216,6 +246,35 @@ export default function UserProfile({ username }) {
           </div>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="space-y-8">
+      {/* Header skeleton */}
+      <div className="flex flex-col gap-6 md:flex-row md:items-start">
+        <Skeleton className="h-32 w-32 rounded-full" />
+        <div className="flex-1 space-y-4">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-full max-w-md" />
+          <div className="flex gap-2">
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-6 w-24" />
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs skeleton */}
+      <Skeleton className="h-10 w-full" />
+
+      {/* Content skeleton */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <Skeleton key={i} className="h-64 w-full rounded-lg" />
+        ))}
+      </div>
     </div>
   );
 }

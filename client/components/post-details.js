@@ -13,6 +13,7 @@ import {
   Eye,
   Share2,
   Layers,
+  ArrowDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,8 +37,11 @@ export default function PostDetails({ postId }) {
   const [post, setPost] = useState(null);
   const [similarPosts, setSimilarPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [voted, setVoted] = useState(false);
-  const [voteCount, setVoteCount] = useState(0);
+  const [voted, setVoted] = useState(null);
+  const [voteCount, setVoteCount] = useState({
+    upvotes: 0,
+    downvotes: 0,
+  });
 
   useEffect(() => {
     const fetchPostDetails = async () => {
@@ -45,7 +49,13 @@ export default function PostDetails({ postId }) {
       try {
         const postData = await getPostById(postId);
         setPost(postData);
-        setVoteCount(postData.votes.length);
+        setVoteCount({
+          upvotes: postData.votes.filter((v) => v.type === "upvote").length,
+          downvotes: Math.floor(
+            Math.random() *
+              (postData.votes.filter((v) => v.type === "upvote").length / 2 + 1)
+          ),
+        });
 
         const similar = await getSimilarPosts(postId, postData.tags);
         setSimilarPosts(similar);
@@ -59,13 +69,32 @@ export default function PostDetails({ postId }) {
     fetchPostDetails();
   }, [postId]);
 
-  const handleVote = () => {
-    if (!voted) {
-      setVoteCount(voteCount + 1);
-      setVoted(true);
+  const handleVote = (type) => {
+    if (voted === type) {
+      // Unvote
+      setVoted(null);
+      setVoteCount((prev) => ({
+        ...prev,
+        [type === "upvote" ? "upvotes" : "downvotes"]:
+          prev[type === "upvote" ? "upvotes" : "downvotes"] - 1,
+      }));
     } else {
-      setVoteCount(voteCount - 1);
-      setVoted(false);
+      // If already voted the other way, remove that vote first
+      if (voted) {
+        setVoteCount((prev) => ({
+          ...prev,
+          [voted === "upvote" ? "upvotes" : "downvotes"]:
+            prev[voted === "upvote" ? "upvotes" : "downvotes"] - 1,
+        }));
+      }
+
+      // Add new vote
+      setVoted(type);
+      setVoteCount((prev) => ({
+        ...prev,
+        [type === "upvote" ? "upvotes" : "downvotes"]:
+          prev[type === "upvote" ? "upvotes" : "downvotes"] + 1,
+      }));
     }
     // In a real app, you would send a POST request to your API to record the vote
   };
@@ -112,15 +141,26 @@ export default function PostDetails({ postId }) {
             <Share2 className="h-4 w-4" />
             <span className="hidden sm:inline">Share</span>
           </Button>
-          <Button
-            variant={voted ? "default" : "outline"}
-            size="sm"
-            className="flex items-center gap-1"
-            onClick={handleVote}
-          >
-            <ArrowUp className="h-4 w-4" />
-            <span>{voteCount}</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={voted === "upvote" ? "default" : "outline"}
+              size="sm"
+              className="flex items-center gap-1 text-green-600 dark:text-green-500"
+              onClick={() => handleVote("upvote")}
+            >
+              <ArrowUp className="h-4 w-4" />
+              <span>{voteCount.upvotes}</span>
+            </Button>
+            <Button
+              variant={voted === "downvote" ? "default" : "outline"}
+              size="sm"
+              className="flex items-center gap-1 text-red-600 dark:text-red-500"
+              onClick={() => handleVote("downvote")}
+            >
+              <ArrowDown className="h-4 w-4" />
+              <span>{voteCount.downvotes}</span>
+            </Button>
+          </div>
         </div>
       </div>
 
