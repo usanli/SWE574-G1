@@ -31,12 +31,24 @@ export async function getPosts(
   page = 1,
   limit = 9,
   sortBy = "recent",
-  filter = "all"
+  filter = "all",
+  searchQuery = ""
 ) {
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 800));
 
   let filteredPosts = [...MOCK_POSTS];
+
+  // Filter by search query if provided
+  if (searchQuery) {
+    const query = searchQuery.toLowerCase();
+    filteredPosts = filteredPosts.filter(
+      (post) =>
+        post.title.toLowerCase().includes(query) ||
+        post.description.toLowerCase().includes(query) ||
+        post.tags.some((tag) => tag.toLowerCase().includes(query))
+    );
+  }
 
   // Filter posts based on status
   if (filter === "solved") {
@@ -74,6 +86,7 @@ export async function getPosts(
   return {
     posts: paginatedPosts,
     hasMore,
+    total: filteredPosts.length,
   };
 }
 
