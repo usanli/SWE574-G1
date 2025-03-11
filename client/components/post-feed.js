@@ -103,8 +103,8 @@ export default function PostFeed() {
             <Search className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold">No results found</h3>
             <p className="text-muted-foreground">
-              No objects match your search for "{searchQuery}". Try different
-              keywords or browse all objects.
+              No objects match your search for &quot;{searchQuery}&quot;. Try
+              different keywords or browse all objects.
             </p>
           </>
         ) : (
@@ -124,8 +124,9 @@ export default function PostFeed() {
     <div className="space-y-8">
       {isSearching && (
         <p className="text-sm text-muted-foreground">
-          Found {totalResults} {totalResults === 1 ? "result" : "results"} for "
-          {searchQuery}"
+          Found {totalResults} {totalResults === 1 ? "result" : "results"} for
+          &quot;
+          {searchQuery}&quot;
         </p>
       )}
 

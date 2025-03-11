@@ -204,7 +204,9 @@ export default function Navbar() {
         <div className="container py-2 text-sm text-muted-foreground flex items-center justify-between">
           <div>
             Searching for:{" "}
-            <span className="font-medium text-foreground">"{searchQuery}"</span>
+            <span className="font-medium text-foreground">
+              &quot;{searchQuery}&quot;
+            </span>
           </div>
           <Button
             variant="ghost"

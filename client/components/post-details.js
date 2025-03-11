@@ -109,7 +109,8 @@ export default function PostDetails({ postId }) {
         <div className="flex flex-col items-center justify-center rounded-lg border bg-muted/20 p-12 text-center">
           <h1 className="text-2xl font-bold">Mystery Not Found</h1>
           <p className="mt-2 text-muted-foreground">
-            The mystery you're looking for does not exist or has been removed.
+            The mystery you&apos;re looking for does not exist or has been
+            removed.
           </p>
           <Button className="mt-4" asChild>
             <Link href="/">Back to Home</Link>
