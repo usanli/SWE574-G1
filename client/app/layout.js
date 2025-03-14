@@ -8,33 +8,33 @@ import { SearchProvider } from "@/context/search-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1.0,
+  viewportFit: "cover",
+  maximumScale: 1.0,
+  userScalable: false,
+  themeColor: "#4f46e5",
+};
+
 export const metadata = {
   title: "NameThatFor.me",
-  description: "A community-driven platform for identifying mysterious objects",
+  description: "Identify mysterious objects with help from the community",
   manifest: "/manifest.json",
-  themeColor: "#FFD700",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "NameThatFor.me",
   },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
+  formatDetection: {
+    telephone: false,
   },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="mobile-web-app-capable" content="yes" />
-      </head>
+      <head />
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
