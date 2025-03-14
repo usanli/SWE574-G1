@@ -6,15 +6,35 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
+  const [formData, setState] = useState({
+    username: "",
+    password: ""
+  });
+  const [error, setError] = useState("");
 
-  const handleLogin = (e) => {
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    setState(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    login("test@example.com", "password");
-    router.push("/");
+    setError("");
+
+    try {
+      await login(formData.username, formData.password);
+      router.push("/");
+    } catch (err) {
+      setError("Authentication failed. Please check your username and password.");
+    }
   };
 
   return (
@@ -27,13 +47,19 @@ export default function LoginPage() {
           </p>
         </div>
         <form className="space-y-4" onSubmit={handleLogin}>
+          {error && (
+            <div className="rounded-md bg-destructive/15 p-3 text-destructive">
+              {error}
+            </div>
+          )}
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="username">Username</Label>
             <Input
-              id="email"
-              placeholder="name@example.com"
-              type="email"
-              defaultValue="test@example.com"
+              id="username"
+              placeholder="johndoe123"
+              value={formData.username}
+              onChange={handleChange}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -43,7 +69,13 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            <Input id="password" type="password" defaultValue="password" />
+            <Input 
+              id="password" 
+              type="password" 
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
           </div>
           <Button className="w-full" type="submit">
             Login

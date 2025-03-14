@@ -41,8 +41,36 @@ class CommentService:
                     detail="Parent comment does not belong to the specified mystery"
                 )
         
+        # Handle is_question flag - translate between frontend and backend categories
+        # The frontend uses lowercase categories, backend uses uppercase
+        # We need to normalize this
+        category = comment_data.category
+        if isinstance(category, str):
+            # Convert to uppercase for backend
+            comment_data.category = category.upper()
+        
         comment_dict = comment_data.dict()
         created_comment = CommentModel.create_comment(comment_dict, author_id)
+        
+        # Get author details for the response
+        from ..models.user_model import UserModel
+        author = UserModel.get_user_by_id(author_id)
+        if author:
+            created_comment["author"] = {
+                "id": author["id"],
+                "username": author["username"],
+                "email": author["email"],
+                "name": author.get("name"),
+                "surname": author.get("surname"),
+                "role": author.get("role", "user"),
+                "badges": author.get("badges", []),
+                "bio": author.get("bio"),
+                "country": author.get("country"),
+                "profession": author.get("profession")
+            }
+        
+        # Set is_question flag based on category for the frontend
+        created_comment["is_question"] = created_comment.get("category", "").upper() == "QUESTION"
         
         return CommentResponse(**created_comment)
     
@@ -58,6 +86,13 @@ class CommentService:
             )
             
         comments = CommentModel.list_comments_by_mystery(mystery_id)
+        
+        # Set is_question flag for each comment based on category
+        for comment in comments:
+            comment["is_question"] = comment.get("category", "").upper() == "QUESTION"
+            if "replies" in comment:
+                for reply in comment["replies"]:
+                    reply["is_question"] = reply.get("category", "").upper() == "QUESTION"
         
         return [CommentResponse(**comment) for comment in comments]
     
@@ -83,4 +118,46 @@ class CommentService:
         update_dict = update_data.dict(exclude_unset=True)
         updated_comment = CommentModel.update_comment(comment_id, update_dict)
         
+        return CommentResponse(**updated_comment)
+        
+    @staticmethod
+    def add_vote(comment_id: str, user_id: str, vote_type: str) -> CommentResponse:
+        """Add a vote to a comment"""
+        # Check if comment exists
+        comment = CommentModel.get_comment_by_id(comment_id)
+        if not comment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Comment not found"
+            )
+            
+        # Add the vote
+        updated_comment = CommentModel.add_vote(comment_id, user_id, vote_type)
+        if not updated_comment:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to add vote"
+            )
+            
+        return CommentResponse(**updated_comment)
+        
+    @staticmethod
+    def remove_vote(comment_id: str, user_id: str) -> CommentResponse:
+        """Remove a vote from a comment"""
+        # Check if comment exists
+        comment = CommentModel.get_comment_by_id(comment_id)
+        if not comment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Comment not found"
+            )
+            
+        # Remove the vote
+        updated_comment = CommentModel.remove_vote(comment_id, user_id)
+        if not updated_comment:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to remove vote"
+            )
+            
         return CommentResponse(**updated_comment) 
