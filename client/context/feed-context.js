@@ -5,15 +5,15 @@ import { createContext, useContext, useState } from "react";
 const FeedContext = createContext({
   sortBy: "recent",
   setSortBy: () => {},
-  category: "all",
-  setCategory: () => {},
+  filter: "all",
+  setFilter: () => {},
   hasMore: true,
   setHasMore: () => {},
 });
 
 export function FeedProvider({ children }) {
   const [sortBy, setSortBy] = useState("recent");
-  const [category, setCategory] = useState("all");
+  const [filter, setFilter] = useState("all");
   const [hasMore, setHasMore] = useState(true);
 
   return (
@@ -21,8 +21,8 @@ export function FeedProvider({ children }) {
       value={{
         sortBy,
         setSortBy,
-        category,
-        setCategory,
+        filter,
+        setFilter,
         hasMore,
         setHasMore,
       }}
