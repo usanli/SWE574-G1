@@ -29,38 +29,100 @@ import {
 } from "@/lib/user-api";
 import PostCard from "@/components/post-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/context/auth-context";
 
 export default function UserProfile({ username }) {
+  const { user: authUser } = useAuth();
   const [user, setUser] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("submissions");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
       setLoading(true);
+      setError(null);
+
       try {
-        const userData = await getUserByUsername(username);
-        setUser(userData);
+        // If this is the current user, use auth data directly
+        if (authUser && authUser.username === username) {
+          setUser({
+            ...authUser,
+            created_at: authUser.created_at || new Date().toISOString(),
+            badges: authUser.badges || [],
+          });
 
-        const userSubmissions = await getUserSubmissions(userData.id);
-        setSubmissions(userSubmissions);
+          // Try to fetch real submissions for the current user
+          try {
+            console.log("Fetching real submissions for user:", authUser.id);
+            const realSubmissions = await getUserSubmissions(authUser.id);
+            console.log("Fetched submissions:", realSubmissions);
+            setSubmissions(realSubmissions || []);
 
-        const userComments = await getUserComments(userData.id);
-        setComments(userComments);
+            // Get comments (this would be a real API call in production)
+            const userComments = await getUserComments(authUser.id);
+            setComments(userComments || []);
+          } catch (activityError) {
+            console.warn("Error fetching user activity:", activityError);
+            setSubmissions([]);
+            setComments([]);
+          }
+        } else {
+          // For other users, get profile and mock data
+          const userData = await getUserByUsername(username);
+          setUser(userData);
+
+          // Only use mock data for other users' profiles
+          try {
+            const userId = userData?.id || "user-1";
+            const userSubmissions = await getUserSubmissions(userId);
+            setSubmissions(userSubmissions);
+
+            const userComments = await getUserComments(userId);
+            setComments(userComments);
+          } catch (dataError) {
+            console.warn("Error fetching user activity data:", dataError);
+            setSubmissions([]);
+            setComments([]);
+          }
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
+        setError("User profile could not be loaded");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserData();
-  }, [username]);
+    if (username) {
+      fetchUserData();
+    }
+  }, [username, authUser]);
 
-  if (loading || !user) {
+  if (loading) {
     return <ProfileSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <h2 className="text-2xl font-bold text-destructive mb-2">Error</h2>
+        <p className="text-muted-foreground mb-6">{error}</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <h2 className="text-2xl font-bold mb-2">User Not Found</h2>
+        <p className="text-muted-foreground mb-6">
+          The user profile you&apos;re looking for does not exist.
+        </p>
+      </div>
+    );
   }
 
   // Calculate stats
@@ -191,7 +253,11 @@ export default function UserProfile({ username }) {
           ) : (
             <EmptyState
               title="No submissions yet"
-              description={`${user.username} hasn't submitted any objects for identification.`}
+              description={
+                username === authUser?.username
+                  ? "You haven&apos;t submitted any objects for identification yet. Click &apos;Submit Object&apos; to get started!"
+                  : `${user.username} hasn&apos;t submitted any objects for identification.`
+              }
             />
           )}
         </TabsContent>
@@ -206,7 +272,11 @@ export default function UserProfile({ username }) {
           ) : (
             <EmptyState
               title="No comments yet"
-              description={`${user.username} hasn't commented on any objects.`}
+              description={
+                username === authUser?.username
+                  ? "You haven&apos;t commented on any objects yet. Browse some posts and share your thoughts!"
+                  : `${user.username} hasn&apos;t commented on any objects.`
+              }
             />
           )}
         </TabsContent>

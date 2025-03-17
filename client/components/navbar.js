@@ -165,11 +165,11 @@ export default function Navbar() {
                       <Avatar className="h-6 w-6">
                         <AvatarImage src={user?.profile_picture_url} />
                         <AvatarFallback>
-                          {user?.name?.substring(0, 2).toUpperCase() || "TU"}
+                          {user?.username?.substring(0, 2).toUpperCase() || "TU"}
                         </AvatarFallback>
                       </Avatar>
                       <span className="hidden sm:inline">
-                        {user?.name || "Test User"}
+                        {user?.username || "TestUser"}
                       </span>
                     </Button>
                   </Link>

@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { postService } from "@/lib/api-service";
 
 // Mock data for predefined fields
 const PREDEFINED_FIELDS = {
@@ -1091,9 +1092,10 @@ export default function SubmitForm() {
       newErrors.description = "Description is required";
     }
 
-    if (!formData.images.main) {
-      newErrors.images = "Main image is required";
-    }
+    // Remove the image requirement
+    // if (!formData.images.main) {
+    //   newErrors.images = "Main image is required";
+    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -1114,20 +1116,43 @@ export default function SubmitForm() {
     setIsSubmitting(true);
 
     try {
-      // In a real app, you would send the data to your API
-      console.log("Submitting mystery object:", {
-        ...formData,
+      // For demo purposes - use placeholder images instead of the actual image URLs
+      // that are only valid in the browser
+      const imageData = {
+        main: formData.images.main ? 
+          "https://placehold.co/600x400?text=Main+Image" : null,
+        additional: formData.images.additional.map((_, i) => 
+          `https://placehold.co/600x400?text=Additional+Image+${i+1}`)
+      };
+      
+      // Format the data for the backend API
+      const mysteryData = {
+        title: formData.title,
+        description: formData.description,
+        location: formData.location || "",
+        anonymous: formData.anonymous,
         parts: objectParts,
-        tags: tags.map((tag) => tag.label),
-      });
+        tags: tags.map((tag) => tag.label ? tag.label : tag),
+        // Use the placeholder images instead of browser-only URLs
+        ...(formData.images.main || formData.images.additional.length > 0 ? { images: imageData } : {})
+      };
+      
+      // Log what's being submitted (for debugging)
+      console.log("Submitting mystery object:", mysteryData);
+      
+      // Send to the real API
+      await postService.createPost(mysteryData);
+      
+      // Show success message
+      alert("Success! Your mystery object has been submitted.");
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Redirect to home page or success page
+      // Redirect to home page
       router.push("/");
     } catch (error) {
       console.error("Error submitting form:", error);
+      
+      // Show error message with more details
+      alert(`Error: Failed to submit your mystery object. ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }

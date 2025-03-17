@@ -29,6 +29,7 @@ db: Database = client[settings.MONGO_DB]
 users_collection: Collection = db["users"]
 mysteries_collection: Collection = db["mysteries"]
 comments_collection: Collection = db["comments"]
+votes_collection: Collection = db["votes"]
 
 # Create indexes
 users_collection.create_index("username", unique=True)
@@ -37,3 +38,8 @@ mysteries_collection.create_index("author_id")
 mysteries_collection.create_index("title")
 comments_collection.create_index("mystery_id")
 comments_collection.create_index("parent_id")
+
+# Create indexes for votes collection
+votes_collection.create_index([("user_id", 1), ("target_id", 1), ("content_type", 1)], unique=True)
+votes_collection.create_index("target_id")
+votes_collection.create_index("content_type")

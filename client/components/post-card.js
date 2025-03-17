@@ -27,16 +27,24 @@ export default function PostCard({ post }) {
       ? `${description.substring(0, 100)}...`
       : description;
 
+  // Use a local placeholder instead of external URL
+  const localPlaceholder = "/placeholder.svg";
+
+  // Check if image is from an external domain
+  const isExternalImage =
+    image && (image.startsWith("http://") || image.startsWith("https://"));
+
   return (
     <Link href={`/post/${id}`}>
       <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
         <div className="relative h-48 w-full overflow-hidden">
           <Image
-            src={image || "/placeholder.svg?height=400&width=600"}
+            src={localPlaceholder}
             alt={title}
             fill
             className="object-cover"
           />
+
           {status === "solved" && (
             <div className="absolute right-2 top-2 rounded-full bg-green-500 px-2 py-1 text-xs font-medium text-white">
               Solved
@@ -54,8 +62,8 @@ export default function PostCard({ post }) {
           </p>
 
           <div className="mb-3 flex flex-wrap gap-1">
-            {tags.slice(0, 3).map((tag) => (
-              <Badge key={tag} variant="outline" className="bg-muted/50">
+            {tags.slice(0, 3).map((tag, index) => (
+              <Badge key={index} variant="outline" className="bg-muted/50">
                 {tag}
               </Badge>
             ))}
@@ -69,12 +77,8 @@ export default function PostCard({ post }) {
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <div className="flex items-center">
               <Avatar className="mr-2 h-6 w-6">
-                <AvatarImage
-                  src={author.avatar || "/placeholder.svg?height=24&width=24"}
-                  alt={author.name}
-                />
                 <AvatarFallback>
-                  {author.name.substring(0, 2).toUpperCase()}
+                  {author.username?.substring(0, 2).toUpperCase() || "AN"}
                 </AvatarFallback>
               </Avatar>
               <span>{author.name}</span>

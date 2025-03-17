@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any
 import uuid
 
 from ..core.database import comments_collection, users_collection
+from .vote_model import VoteModel
 
 class CommentModel:
     @staticmethod
@@ -23,20 +24,36 @@ class CommentModel:
         # Set default values
         comment_data["featured"] = comment_data.get("featured", False)
         
+        # Remove votes from the comment data - we'll use the VoteModel instead
+        if "votes" in comment_data:
+            del comment_data["votes"]
+        
+        # Handle subcategory - use category as fallback if not provided
+        if not comment_data.get("subcategory"):
+            comment_data["subcategory"] = comment_data.get("category")
+        
         # Insert into database
         comments_collection.insert_one(comment_data)
         return comment_data
     
     @staticmethod
-    def get_comment_by_id(comment_id: str) -> Optional[dict]:
+    def get_comment_by_id(comment_id: str, include_votes: bool = False) -> Optional[dict]:
         """Get a comment by ID"""
-        return comments_collection.find_one({"id": comment_id})
+        comment = comments_collection.find_one({"id": comment_id})
+        
+        if comment and include_votes:
+            # Get votes from the VoteModel
+            votes = VoteModel.get_votes(comment_id, "comment")
+            comment["votes"] = votes
+            
+        return comment
     
     @staticmethod
     def list_comments_by_mystery(
         mystery_id: str, 
         include_author: bool = True, 
-        include_replies: bool = True
+        include_replies: bool = True,
+        include_votes: bool = True
     ) -> List[dict]:
         """List all top-level comments for a mystery with optional replies"""
         # Find top-level comments (no parent_id)
@@ -90,7 +107,19 @@ class CommentModel:
                                 "profession": author.get("profession")
                             }
                 
+                if include_votes:
+                    # Add votes for each reply
+                    for reply in replies:
+                        votes = VoteModel.get_votes(reply["id"], "comment")
+                        reply["votes"] = votes
+                
                 comment["replies"] = replies
+        
+        if include_votes:
+            # Add votes for each comment
+            for comment in comments:
+                votes = VoteModel.get_votes(comment["id"], "comment")
+                comment["votes"] = votes
         
         return comments
     

@@ -6,15 +6,42 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function RegisterPage() {
   const { register } = useAuth();
   const router = useRouter();
+  const [formData, setState] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: ""
+  });
+  const [error, setError] = useState("");
 
-  const handleRegister = (e) => {
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    setState(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
+  const handleRegister = async (e) => {
     e.preventDefault();
-    register("Test User", "test@example.com", "password");
-    router.push("/");
+    setError("");
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    try {
+      await register(formData.username, formData.email, formData.password);
+      router.push("/");
+    } catch (err) {
+      setError(err.message || "Registration failed");
+    }
   };
 
   return (
@@ -27,9 +54,20 @@ export default function RegisterPage() {
           </p>
         </div>
         <form className="space-y-4" onSubmit={handleRegister}>
+          {error && (
+            <div className="rounded-md bg-destructive/15 p-3 text-destructive">
+              {error}
+            </div>
+          )}
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" placeholder="John Doe" defaultValue="Test User" />
+            <Label htmlFor="username">Username</Label>
+            <Input 
+              id="username" 
+              placeholder="johndoe123" 
+              value={formData.username}
+              onChange={handleChange}
+              required
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -37,19 +75,29 @@ export default function RegisterPage() {
               id="email"
               placeholder="name@example.com"
               type="email"
-              defaultValue="test@example.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" defaultValue="password" />
+            <Input 
+              id="password" 
+              type="password" 
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirm-password">Confirm Password</Label>
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
             <Input
-              id="confirm-password"
+              id="confirmPassword"
               type="password"
-              defaultValue="password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
             />
           </div>
           <Button className="w-full" type="submit">
