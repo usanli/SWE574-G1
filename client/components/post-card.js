@@ -29,35 +29,22 @@ export default function PostCard({ post }) {
 
   // Use a local placeholder instead of external URL
   const localPlaceholder = "/placeholder.svg";
-  
+
   // Check if image is from an external domain
-  const isExternalImage = image && (image.startsWith('http://') || image.startsWith('https://'));
+  const isExternalImage =
+    image && (image.startsWith("http://") || image.startsWith("https://"));
 
   return (
     <Link href={`/post/${id}`}>
       <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
         <div className="relative h-48 w-full overflow-hidden">
-          {/* Use standard img tag for external images */}
-          {isExternalImage ? (
-            <img
-              src={image}
-              alt={title}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                // If the image fails to load, use the local placeholder
-                e.target.src = localPlaceholder;
-              }}
-            />
-          ) : (
-            // Use Next.js Image for internal images
-            <Image
-              src={image || localPlaceholder}
-              alt={title}
-              fill
-              className="object-cover"
-            />
-          )}
-          
+          <Image
+            src={localPlaceholder}
+            alt={title}
+            fill
+            className="object-cover"
+          />
+
           {status === "solved" && (
             <div className="absolute right-2 top-2 rounded-full bg-green-500 px-2 py-1 text-xs font-medium text-white">
               Solved
@@ -91,7 +78,7 @@ export default function PostCard({ post }) {
             <div className="flex items-center">
               <Avatar className="mr-2 h-6 w-6">
                 <AvatarFallback>
-                  {author.name?.substring(0, 2).toUpperCase() || "AN"}
+                  {author.username?.substring(0, 2).toUpperCase() || "AN"}
                 </AvatarFallback>
               </Avatar>
               <span>{author.name}</span>

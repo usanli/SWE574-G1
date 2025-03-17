@@ -1,41 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowUp,
-  ArrowRight,
-  Tag,
-  MapPin,
-  Calendar,
-  User,
-  Eye,
-  Share2,
-  Layers,
-  ArrowDown,
-} from "lucide-react";
+import { ArrowUp, MapPin, ArrowDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getPostById, getSimilarPosts } from "@/lib/post-api";
 import { formatDate } from "@/lib/utils";
-import SimilarPostCard from "@/components/similar-post-card";
 import PostComments from "@/components/post-comments";
-import PostSkeleton from "@/components/post-skeleton";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 
 export default function PostDetails({ post }) {
   console.log("Post data in details component:", post);
-  
+
   // Use placeholder values if any values are missing
   const {
     id,
@@ -53,7 +29,7 @@ export default function PostDetails({ post }) {
 
   // For backend compatibility
   const solved = status === "solved";
-  
+
   // Calculate vote counts - adapt for backend format
   const upvotes = post?.upvotes || 0;
   const downvotes = post?.downvotes || 0;
@@ -61,12 +37,14 @@ export default function PostDetails({ post }) {
   // Check if images is a string or object and normalize
   let mainImage = null;
   let additionalImages = [];
-  
-  if (typeof images === 'string') {
+
+  if (typeof images === "string") {
     mainImage = images;
-  } else if (images && typeof images === 'object') {
+  } else if (images && typeof images === "object") {
     mainImage = images.main || null;
-    additionalImages = Array.isArray(images.additional) ? images.additional : [];
+    additionalImages = Array.isArray(images.additional)
+      ? images.additional
+      : [];
   }
 
   // Local placeholder image
@@ -92,7 +70,7 @@ export default function PostDetails({ post }) {
           <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8">
               <AvatarFallback>
-                {author?.name?.substring(0, 2).toUpperCase() || "AN"}
+                {author?.username?.substring(0, 2).toUpperCase() || "AN"}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -101,7 +79,7 @@ export default function PostDetails({ post }) {
                 href={`/profile/${author.username}`}
                 className="font-medium text-foreground hover:text-primary"
               >
-                {author.name}
+                {author.username}
               </Link>
             </div>
           </div>
@@ -171,10 +149,11 @@ export default function PostDetails({ post }) {
               {/* Main image */}
               {mainImage ? (
                 <div className="relative aspect-square w-full">
-                  <img
+                  <Image
                     src={mainImage}
                     alt={title}
-                    className="h-full w-full object-cover"
+                    fill
+                    className="object-cover"
                     onError={(e) => {
                       e.target.src = localPlaceholder;
                     }}
@@ -195,10 +174,11 @@ export default function PostDetails({ post }) {
                     key={index}
                     className="relative aspect-square overflow-hidden rounded-md border"
                   >
-                    <img
+                    <Image
                       src={image}
                       alt={`Additional view ${index + 1}`}
-                      className="h-full w-full object-cover"
+                      fill
+                      className="object-cover"
                       onError={(e) => {
                         e.target.src = localPlaceholder;
                       }}

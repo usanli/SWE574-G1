@@ -44,23 +44,23 @@ export default function UserProfile({ username }) {
     const fetchUserData = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         // If this is the current user, use auth data directly
         if (authUser && authUser.username === username) {
           setUser({
             ...authUser,
             created_at: authUser.created_at || new Date().toISOString(),
-            badges: authUser.badges || []
+            badges: authUser.badges || [],
           });
-          
+
           // Try to fetch real submissions for the current user
           try {
             console.log("Fetching real submissions for user:", authUser.id);
             const realSubmissions = await getUserSubmissions(authUser.id);
             console.log("Fetched submissions:", realSubmissions);
             setSubmissions(realSubmissions || []);
-            
+
             // Get comments (this would be a real API call in production)
             const userComments = await getUserComments(authUser.id);
             setComments(userComments || []);
@@ -104,7 +104,7 @@ export default function UserProfile({ username }) {
   if (loading) {
     return <ProfileSkeleton />;
   }
-  
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -119,7 +119,7 @@ export default function UserProfile({ username }) {
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <h2 className="text-2xl font-bold mb-2">User Not Found</h2>
         <p className="text-muted-foreground mb-6">
-          The user profile you're looking for does not exist.
+          The user profile you&apos;re looking for does not exist.
         </p>
       </div>
     );
@@ -253,9 +253,11 @@ export default function UserProfile({ username }) {
           ) : (
             <EmptyState
               title="No submissions yet"
-              description={username === authUser?.username ? 
-                "You haven't submitted any objects for identification yet. Click 'Submit Object' to get started!" : 
-                `${user.username} hasn't submitted any objects for identification.`}
+              description={
+                username === authUser?.username
+                  ? "You haven&apos;t submitted any objects for identification yet. Click &apos;Submit Object&apos; to get started!"
+                  : `${user.username} hasn&apos;t submitted any objects for identification.`
+              }
             />
           )}
         </TabsContent>
@@ -270,9 +272,11 @@ export default function UserProfile({ username }) {
           ) : (
             <EmptyState
               title="No comments yet"
-              description={username === authUser?.username ? 
-                "You haven't commented on any objects yet. Browse some posts and share your thoughts!" : 
-                `${user.username} hasn't commented on any objects.`}
+              description={
+                username === authUser?.username
+                  ? "You haven&apos;t commented on any objects yet. Browse some posts and share your thoughts!"
+                  : `${user.username} hasn&apos;t commented on any objects.`
+              }
             />
           )}
         </TabsContent>

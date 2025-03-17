@@ -77,7 +77,7 @@ function processComments(comments) {
     console.warn("Comments is not an array:", comments);
     return { discussion: [], questions: [] };
   }
-  
+
   // Separate comments by category
   const discussionComments = comments.filter(
     (c) =>
@@ -134,30 +134,27 @@ function Comment({
   showReplyForm = false,
   onCancelReply = () => {},
 }) {
-  // Use our local auth implementation
-  const auth = useAuth();
-  const isAuthenticated = auth?.isAuthenticated || false;
-  
-  // Ensure comment has all required properties
-  if (!comment) {
-    console.error("Comment object is undefined");
-    return null;
-  }
-  
+  // Initialize state at the top level, not in conditionals
   const [replyContent, setReplyContent] = useState("");
   const [voteStatus, setVoteStatus] = useState(null); // null, 'upvote', or 'downvote'
   const [voteCount, setVoteCount] = useState(
-    comment.votes
+    comment?.votes
       ? comment.votes.filter((v) => v.type === "upvote").length -
           comment.votes.filter((v) => v.type === "downvote").length
       : 0
   );
 
+  // Return early if no comment
+  if (!comment) {
+    console.error("Comment object is undefined");
+    return null;
+  }
+
   // Get comment type info with fallback
   let commentType = COMMENT_TYPES[comment.category] || COMMENT_TYPES.discussion;
-  
+
   // If it's a question type comment, override with question styling
-  if (comment.category?.toLowerCase() === 'question') {
+  if (comment.category?.toLowerCase() === "question") {
     commentType = COMMENT_TYPES.question;
   }
 
@@ -394,7 +391,7 @@ function CommentList({
 }) {
   // Make sure comments is an array
   const safeComments = Array.isArray(comments) ? comments : [];
-  
+
   const [visibleComments, setVisibleComments] = useState(5);
   const [replyingTo, setReplyingTo] = useState(null);
   const [commentType, setCommentType] = useState(
@@ -538,19 +535,19 @@ function CommentList({
 // Create a mock auth context to use if the real one isn't available
 const useAuth = () => {
   // Check if window is defined (for SSR compatibility)
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
-    const username = localStorage.getItem('username');
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
+    const username = localStorage.getItem("username");
     return {
       isAuthenticated: !!token,
-      user: username ? { username } : null
+      user: username ? { username } : null,
     };
   }
   return { isAuthenticated: false, user: null };
 };
 
 export default function PostComments({ postId, initialComments = [] }) {
-  // Use our local auth implementation 
+  // Use our local auth implementation
   const auth = useAuth();
   const isAuthenticated = auth?.isAuthenticated || false;
   const user = auth?.user || null;
@@ -571,36 +568,38 @@ export default function PostComments({ postId, initialComments = [] }) {
     } else {
       setComments([]);
     }
-    
+
     // Optionally fetch fresh comments from backend
     const fetchComments = async () => {
       if (!postId) return;
-      
+
       setLoading(true);
       try {
         // Fetch comments from the backend API
-        const response = await fetch(`http://localhost:8000/mysteries/${postId}/comments`);
-        
+        const response = await fetch(
+          `http://localhost:8000/mysteries/${postId}/comments`
+        );
+
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log("Fetched comments:", data);
-        
+
         // Process the comments to have the required structure
-        const processedComments = data.map(comment => ({
+        const processedComments = data.map((comment) => ({
           ...comment,
           // Ensure these properties exist
           replies: comment.replies || [],
-          votes: comment.votes || []
+          votes: comment.votes || [],
         }));
-        
+
         setComments(processedComments);
       } catch (error) {
         console.error("Error fetching comments:", error);
         setError(error.message);
-        
+
         // Try to load from local storage as fallback
         try {
           const storedComments = localStorage.getItem(`comments-${postId}`);
@@ -615,7 +614,7 @@ export default function PostComments({ postId, initialComments = [] }) {
         setLoading(false);
       }
     };
-    
+
     fetchComments();
   }, [postId, initialComments]);
 
@@ -624,16 +623,16 @@ export default function PostComments({ postId, initialComments = [] }) {
     if (!commentText.trim() || !isAuthenticated) return;
 
     setIsSubmitting(true);
-    
+
     try {
-      const token = localStorage.getItem('authToken');
-      const username = localStorage.getItem('username');
-      
+      const token = localStorage.getItem("authToken");
+      const username = localStorage.getItem("username");
+
       if (!token) {
         console.error("No auth token found");
         return;
       }
-      
+
       // Create a new comment locally since the backend endpoint might not exist yet
       const newComment = {
         id: `comment-${Date.now()}`,
@@ -644,40 +643,46 @@ export default function PostComments({ postId, initialComments = [] }) {
         },
         created_at: new Date().toISOString(),
         votes: [],
-        isQuestion: activeTab === "questions"
+        isQuestion: activeTab === "questions",
       };
-      
+
       console.log("Adding comment:", newComment);
-      
+
       // Try to submit to backend if available
       try {
-        const response = await fetch(`http://localhost:8000/mysteries/${postId}/comments`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            content: commentText,
-            isQuestion: activeTab === "questions"
-          })
-        });
-        
+        const response = await fetch(
+          `http://localhost:8000/mysteries/${postId}/comments`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              content: commentText,
+              isQuestion: activeTab === "questions",
+            }),
+          }
+        );
+
         if (response.ok) {
           const savedComment = await response.json();
           console.log("Comment saved to backend:", savedComment);
           // If we get a response, use the backend comment instead
-          setComments(prev => [...prev, savedComment]);
+          setComments((prev) => [...prev, savedComment]);
         } else {
           // If backend fails, still add the comment locally
-          setComments(prev => [...prev, newComment]);
+          setComments((prev) => [...prev, newComment]);
         }
       } catch (error) {
-        console.warn("Backend comment submission failed, using local comment:", error);
+        console.warn(
+          "Backend comment submission failed, using local comment:",
+          error
+        );
         // If backend fails, still add the comment locally
-        setComments(prev => [...prev, newComment]);
+        setComments((prev) => [...prev, newComment]);
       }
-      
+
       setCommentText("");
     } catch (error) {
       console.error("Error handling comment:", error);
@@ -689,10 +694,10 @@ export default function PostComments({ postId, initialComments = [] }) {
 
   // We'll create a simple toast alternative
   const toast = {
-    success: (message) => console.log('SUCCESS:', message),
-    error: (message) => console.error('ERROR:', message),
-    warning: (message) => console.warn('WARNING:', message),
-    info: (message) => console.info('INFO:', message)
+    success: (message) => console.log("SUCCESS:", message),
+    error: (message) => console.error("ERROR:", message),
+    warning: (message) => console.warn("WARNING:", message),
+    info: (message) => console.info("INFO:", message),
   };
 
   return (
@@ -708,21 +713,30 @@ export default function PostComments({ postId, initialComments = [] }) {
           <div className="p-6">
             <h3 className="mb-4 flex items-center text-lg font-semibold">
               <MessageSquare className="mr-2 h-5 w-5" />
-              Discussion ({Array.isArray(comments) ? 
-                comments.filter((c) => c.category?.toLowerCase() !== 'question').length : 0})
-              {leftCollapsed && <ChevronDown className="ml-2 h-4 w-4" />}
+              Discussion (
+              {Array.isArray(comments)
+                ? comments.filter(
+                    (c) => c.category?.toLowerCase() !== "question"
+                  ).length
+                : 0}
+              ){leftCollapsed && <ChevronDown className="ml-2 h-4 w-4" />}
             </h3>
 
             <CommentList
-              comments={Array.isArray(comments) ? 
-                comments.filter((c) => c.category?.toLowerCase() !== 'question') : []}
+              comments={
+                Array.isArray(comments)
+                  ? comments.filter(
+                      (c) => c.category?.toLowerCase() !== "question"
+                    )
+                  : []
+              }
               category="discussion"
               onVote={(commentId, voteType) => {
                 // In a real app, you would send this to your API
                 console.log(`Voted ${voteType} on comment ${commentId}`);
               }}
               onSubmitReply={(parentId, content, parentCategory) => {
-                // Create the comment object 
+                // Create the comment object
                 const newComment = {
                   id: `local-${Date.now()}`,
                   mystery_id: postId,
@@ -734,31 +748,31 @@ export default function PostComments({ postId, initialComments = [] }) {
                   is_reply: !!parentId,
                   created_at: new Date().toISOString(),
                   author: {
-                    username: localStorage.getItem('username') || "CurrentUser",
+                    username: localStorage.getItem("username") || "CurrentUser",
                     profile_picture_url: null,
                   },
                   replies: [],
-                  votes: []
+                  votes: [],
                 };
 
-                console.log('Creating new comment:', newComment);
+                console.log("Creating new comment:", newComment);
 
                 // Try the backend API first
-                const token = localStorage.getItem('token');
+                const token = localStorage.getItem("token");
                 const apiUrl = `http://localhost:8000/mysteries/${postId}/comments`;
-                
+
                 // First assume the backend might be down and update the UI immediately
                 // for better user experience
-                setComments(prev => {
+                setComments((prev) => {
                   const updatedComments = [...prev];
-                  
+
                   if (parentId) {
                     // It's a reply - find the parent comment and add the reply
-                    return updatedComments.map(comment => {
+                    return updatedComments.map((comment) => {
                       if (comment.id === parentId) {
                         return {
                           ...comment,
-                          replies: [...(comment.replies || []), newComment]
+                          replies: [...(comment.replies || []), newComment],
                         };
                       }
                       return comment;
@@ -778,60 +792,71 @@ export default function PostComments({ postId, initialComments = [] }) {
                     category: parentCategory,
                     subcategory: parentCategory,
                     anonymous: false,
-                    is_reply: !!parentId
+                    is_reply: !!parentId,
                   };
 
                   fetch(apiUrl, {
-                    method: 'POST',
+                    method: "POST",
                     headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${token}`
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
                     },
-                    body: JSON.stringify(commentData)
+                    body: JSON.stringify(commentData),
                   })
-                  .then(response => {
-                    if (!response.ok) {
-                      throw new Error(`Error ${response.status}: ${response.statusText}`);
-                    }
-                    return response.json();
-                  })
-                  .then(serverComment => {
-                    console.log('Comment saved to backend:', serverComment);
-                    
-                    // If successful, replace the temporary comment with the server version
-                    setComments(prev => {
-                      return prev.map(comment => {
-                        if (comment.id === newComment.id) {
-                          return {
-                            ...serverComment,
-                            replies: comment.replies || [],
-                          };
-                        }
-                        return comment;
+                    .then((response) => {
+                      if (!response.ok) {
+                        throw new Error(
+                          `Error ${response.status}: ${response.statusText}`
+                        );
+                      }
+                      return response.json();
+                    })
+                    .then((serverComment) => {
+                      console.log("Comment saved to backend:", serverComment);
+
+                      // If successful, replace the temporary comment with the server version
+                      setComments((prev) => {
+                        return prev.map((comment) => {
+                          if (comment.id === newComment.id) {
+                            return {
+                              ...serverComment,
+                              replies: comment.replies || [],
+                            };
+                          }
+                          return comment;
+                        });
+                      });
+
+                      toast.success("Comment saved to server");
+                    })
+                    .catch((error) => {
+                      console.warn(
+                        "Backend comment save failed, using local version:",
+                        error
+                      );
+                      toast.info("Comment saved locally");
+
+                      // Save the comments to local storage as a fallback
+                      setComments((prev) => {
+                        const updatedComments = [...prev];
+                        localStorage.setItem(
+                          `comments-${postId}`,
+                          JSON.stringify(updatedComments)
+                        );
+                        return updatedComments;
                       });
                     });
-                    
-                    toast.success('Comment saved to server');
-                  })
-                  .catch(error => {
-                    console.warn('Backend comment save failed, using local version:', error);
-                    toast.info('Comment saved locally');
-                    
-                    // Save the comments to local storage as a fallback
-                    setComments(prev => {
-                      const updatedComments = [...prev];
-                      localStorage.setItem(`comments-${postId}`, JSON.stringify(updatedComments));
-                      return updatedComments;
-                    });
-                  });
                 } else {
-                  console.warn('No token, saving comment locally only');
-                  toast.info('Comment saved locally (login for server sync)');
-                  
+                  console.warn("No token, saving comment locally only");
+                  toast.info("Comment saved locally (login for server sync)");
+
                   // Save to local storage
-                  setComments(prev => {
+                  setComments((prev) => {
                     const updatedComments = [...prev];
-                    localStorage.setItem(`comments-${postId}`, JSON.stringify(updatedComments));
+                    localStorage.setItem(
+                      `comments-${postId}`,
+                      JSON.stringify(updatedComments)
+                    );
                     return updatedComments;
                   });
                 }
@@ -861,21 +886,30 @@ export default function PostComments({ postId, initialComments = [] }) {
           <div className="border-t p-6 md:border-l md:border-t-0">
             <h3 className="mb-4 flex items-center text-lg font-semibold">
               <HelpCircle className="mr-2 h-5 w-5" />
-              Questions ({Array.isArray(comments) ? 
-                comments.filter((c) => c.category?.toLowerCase() === 'question').length : 0})
-              {rightCollapsed && <ChevronDown className="ml-2 h-4 w-4" />}
+              Questions (
+              {Array.isArray(comments)
+                ? comments.filter(
+                    (c) => c.category?.toLowerCase() === "question"
+                  ).length
+                : 0}
+              ){rightCollapsed && <ChevronDown className="ml-2 h-4 w-4" />}
             </h3>
 
             <CommentList
-              comments={Array.isArray(comments) ? 
-                comments.filter((c) => c.category?.toLowerCase() === 'question') : []}
+              comments={
+                Array.isArray(comments)
+                  ? comments.filter(
+                      (c) => c.category?.toLowerCase() === "question"
+                    )
+                  : []
+              }
               category="question"
               onVote={(commentId, voteType) => {
                 // In a real app, you would send this to your API
                 console.log(`Voted ${voteType} on comment ${commentId}`);
               }}
               onSubmitReply={(parentId, content, parentCategory) => {
-                // Create the comment object 
+                // Create the comment object
                 const newComment = {
                   id: `local-${Date.now()}`,
                   mystery_id: postId,
@@ -887,31 +921,31 @@ export default function PostComments({ postId, initialComments = [] }) {
                   is_reply: !!parentId,
                   created_at: new Date().toISOString(),
                   author: {
-                    username: localStorage.getItem('username') || "CurrentUser",
+                    username: localStorage.getItem("username") || "CurrentUser",
                     profile_picture_url: null,
                   },
                   replies: [],
-                  votes: []
+                  votes: [],
                 };
 
-                console.log('Creating new comment:', newComment);
+                console.log("Creating new comment:", newComment);
 
                 // Try the backend API first
-                const token = localStorage.getItem('token');
+                const token = localStorage.getItem("token");
                 const apiUrl = `http://localhost:8000/mysteries/${postId}/comments`;
-                
+
                 // First assume the backend might be down and update the UI immediately
                 // for better user experience
-                setComments(prev => {
+                setComments((prev) => {
                   const updatedComments = [...prev];
-                  
+
                   if (parentId) {
                     // It's a reply - find the parent comment and add the reply
-                    return updatedComments.map(comment => {
+                    return updatedComments.map((comment) => {
                       if (comment.id === parentId) {
                         return {
                           ...comment,
-                          replies: [...(comment.replies || []), newComment]
+                          replies: [...(comment.replies || []), newComment],
                         };
                       }
                       return comment;
@@ -931,60 +965,71 @@ export default function PostComments({ postId, initialComments = [] }) {
                     category: parentCategory,
                     subcategory: parentCategory,
                     anonymous: false,
-                    is_reply: !!parentId
+                    is_reply: !!parentId,
                   };
 
                   fetch(apiUrl, {
-                    method: 'POST',
+                    method: "POST",
                     headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${token}`
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
                     },
-                    body: JSON.stringify(commentData)
+                    body: JSON.stringify(commentData),
                   })
-                  .then(response => {
-                    if (!response.ok) {
-                      throw new Error(`Error ${response.status}: ${response.statusText}`);
-                    }
-                    return response.json();
-                  })
-                  .then(serverComment => {
-                    console.log('Comment saved to backend:', serverComment);
-                    
-                    // If successful, replace the temporary comment with the server version
-                    setComments(prev => {
-                      return prev.map(comment => {
-                        if (comment.id === newComment.id) {
-                          return {
-                            ...serverComment,
-                            replies: comment.replies || [],
-                          };
-                        }
-                        return comment;
+                    .then((response) => {
+                      if (!response.ok) {
+                        throw new Error(
+                          `Error ${response.status}: ${response.statusText}`
+                        );
+                      }
+                      return response.json();
+                    })
+                    .then((serverComment) => {
+                      console.log("Comment saved to backend:", serverComment);
+
+                      // If successful, replace the temporary comment with the server version
+                      setComments((prev) => {
+                        return prev.map((comment) => {
+                          if (comment.id === newComment.id) {
+                            return {
+                              ...serverComment,
+                              replies: comment.replies || [],
+                            };
+                          }
+                          return comment;
+                        });
+                      });
+
+                      toast.success("Comment saved to server");
+                    })
+                    .catch((error) => {
+                      console.warn(
+                        "Backend comment save failed, using local version:",
+                        error
+                      );
+                      toast.info("Comment saved locally");
+
+                      // Save the comments to local storage as a fallback
+                      setComments((prev) => {
+                        const updatedComments = [...prev];
+                        localStorage.setItem(
+                          `comments-${postId}`,
+                          JSON.stringify(updatedComments)
+                        );
+                        return updatedComments;
                       });
                     });
-                    
-                    toast.success('Comment saved to server');
-                  })
-                  .catch(error => {
-                    console.warn('Backend comment save failed, using local version:', error);
-                    toast.info('Comment saved locally');
-                    
-                    // Save the comments to local storage as a fallback
-                    setComments(prev => {
-                      const updatedComments = [...prev];
-                      localStorage.setItem(`comments-${postId}`, JSON.stringify(updatedComments));
-                      return updatedComments;
-                    });
-                  });
                 } else {
-                  console.warn('No token, saving comment locally only');
-                  toast.info('Comment saved locally (login for server sync)');
-                  
+                  console.warn("No token, saving comment locally only");
+                  toast.info("Comment saved locally (login for server sync)");
+
                   // Save to local storage
-                  setComments(prev => {
+                  setComments((prev) => {
                     const updatedComments = [...prev];
-                    localStorage.setItem(`comments-${postId}`, JSON.stringify(updatedComments));
+                    localStorage.setItem(
+                      `comments-${postId}`,
+                      JSON.stringify(updatedComments)
+                    );
                     return updatedComments;
                   });
                 }
@@ -1000,27 +1045,42 @@ export default function PostComments({ postId, initialComments = [] }) {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="discussion">
                 <MessageSquare className="mr-2 h-4 w-4" />
-                Discussion ({Array.isArray(comments) ? 
-                  comments.filter((c) => c.category?.toLowerCase() !== 'question').length : 0})
+                Discussion (
+                {Array.isArray(comments)
+                  ? comments.filter(
+                      (c) => c.category?.toLowerCase() !== "question"
+                    ).length
+                  : 0}
+                )
               </TabsTrigger>
               <TabsTrigger value="questions">
                 <HelpCircle className="mr-2 h-4 w-4" />
-                Questions ({Array.isArray(comments) ? 
-                  comments.filter((c) => c.category?.toLowerCase() === 'question').length : 0})
+                Questions (
+                {Array.isArray(comments)
+                  ? comments.filter(
+                      (c) => c.category?.toLowerCase() === "question"
+                    ).length
+                  : 0}
+                )
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="discussion" className="p-6 pt-4">
               <CommentList
-                comments={Array.isArray(comments) ? 
-                  comments.filter((c) => c.category?.toLowerCase() !== 'question') : []}
+                comments={
+                  Array.isArray(comments)
+                    ? comments.filter(
+                        (c) => c.category?.toLowerCase() !== "question"
+                      )
+                    : []
+                }
                 category="discussion"
                 onVote={(commentId, voteType) => {
                   // In a real app, you would send this to your API
                   console.log(`Voted ${voteType} on comment ${commentId}`);
                 }}
                 onSubmitReply={(parentId, content, parentCategory) => {
-                  // Create the comment object 
+                  // Create the comment object
                   const newComment = {
                     id: `local-${Date.now()}`,
                     mystery_id: postId,
@@ -1032,31 +1092,32 @@ export default function PostComments({ postId, initialComments = [] }) {
                     is_reply: !!parentId,
                     created_at: new Date().toISOString(),
                     author: {
-                      username: localStorage.getItem('username') || "CurrentUser",
+                      username:
+                        localStorage.getItem("username") || "CurrentUser",
                       profile_picture_url: null,
                     },
                     replies: [],
-                    votes: []
+                    votes: [],
                   };
 
-                  console.log('Creating new comment:', newComment);
+                  console.log("Creating new comment:", newComment);
 
                   // Try the backend API first
-                  const token = localStorage.getItem('token');
+                  const token = localStorage.getItem("token");
                   const apiUrl = `http://localhost:8000/mysteries/${postId}/comments`;
-                  
+
                   // First assume the backend might be down and update the UI immediately
                   // for better user experience
-                  setComments(prev => {
+                  setComments((prev) => {
                     const updatedComments = [...prev];
-                    
+
                     if (parentId) {
                       // It's a reply - find the parent comment and add the reply
-                      return updatedComments.map(comment => {
+                      return updatedComments.map((comment) => {
                         if (comment.id === parentId) {
                           return {
                             ...comment,
-                            replies: [...(comment.replies || []), newComment]
+                            replies: [...(comment.replies || []), newComment],
                           };
                         }
                         return comment;
@@ -1076,60 +1137,71 @@ export default function PostComments({ postId, initialComments = [] }) {
                       category: parentCategory,
                       subcategory: parentCategory,
                       anonymous: false,
-                      is_reply: !!parentId
+                      is_reply: !!parentId,
                     };
 
                     fetch(apiUrl, {
-                      method: 'POST',
+                      method: "POST",
                       headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
                       },
-                      body: JSON.stringify(commentData)
+                      body: JSON.stringify(commentData),
                     })
-                    .then(response => {
-                      if (!response.ok) {
-                        throw new Error(`Error ${response.status}: ${response.statusText}`);
-                      }
-                      return response.json();
-                    })
-                    .then(serverComment => {
-                      console.log('Comment saved to backend:', serverComment);
-                      
-                      // If successful, replace the temporary comment with the server version
-                      setComments(prev => {
-                        return prev.map(comment => {
-                          if (comment.id === newComment.id) {
-                            return {
-                              ...serverComment,
-                              replies: comment.replies || [],
-                            };
-                          }
-                          return comment;
+                      .then((response) => {
+                        if (!response.ok) {
+                          throw new Error(
+                            `Error ${response.status}: ${response.statusText}`
+                          );
+                        }
+                        return response.json();
+                      })
+                      .then((serverComment) => {
+                        console.log("Comment saved to backend:", serverComment);
+
+                        // If successful, replace the temporary comment with the server version
+                        setComments((prev) => {
+                          return prev.map((comment) => {
+                            if (comment.id === newComment.id) {
+                              return {
+                                ...serverComment,
+                                replies: comment.replies || [],
+                              };
+                            }
+                            return comment;
+                          });
+                        });
+
+                        toast.success("Comment saved to server");
+                      })
+                      .catch((error) => {
+                        console.warn(
+                          "Backend comment save failed, using local version:",
+                          error
+                        );
+                        toast.info("Comment saved locally");
+
+                        // Save the comments to local storage as a fallback
+                        setComments((prev) => {
+                          const updatedComments = [...prev];
+                          localStorage.setItem(
+                            `comments-${postId}`,
+                            JSON.stringify(updatedComments)
+                          );
+                          return updatedComments;
                         });
                       });
-                      
-                      toast.success('Comment saved to server');
-                    })
-                    .catch(error => {
-                      console.warn('Backend comment save failed, using local version:', error);
-                      toast.info('Comment saved locally');
-                      
-                      // Save the comments to local storage as a fallback
-                      setComments(prev => {
-                        const updatedComments = [...prev];
-                        localStorage.setItem(`comments-${postId}`, JSON.stringify(updatedComments));
-                        return updatedComments;
-                      });
-                    });
                   } else {
-                    console.warn('No token, saving comment locally only');
-                    toast.info('Comment saved locally (login for server sync)');
-                    
+                    console.warn("No token, saving comment locally only");
+                    toast.info("Comment saved locally (login for server sync)");
+
                     // Save to local storage
-                    setComments(prev => {
+                    setComments((prev) => {
                       const updatedComments = [...prev];
-                      localStorage.setItem(`comments-${postId}`, JSON.stringify(updatedComments));
+                      localStorage.setItem(
+                        `comments-${postId}`,
+                        JSON.stringify(updatedComments)
+                      );
                       return updatedComments;
                     });
                   }
@@ -1140,15 +1212,20 @@ export default function PostComments({ postId, initialComments = [] }) {
 
             <TabsContent value="questions" className="p-6 pt-4">
               <CommentList
-                comments={Array.isArray(comments) ? 
-                  comments.filter((c) => c.category?.toLowerCase() === 'question') : []}
+                comments={
+                  Array.isArray(comments)
+                    ? comments.filter(
+                        (c) => c.category?.toLowerCase() === "question"
+                      )
+                    : []
+                }
                 category="question"
                 onVote={(commentId, voteType) => {
                   // In a real app, you would send this to your API
                   console.log(`Voted ${voteType} on comment ${commentId}`);
                 }}
                 onSubmitReply={(parentId, content, parentCategory) => {
-                  // Create the comment object 
+                  // Create the comment object
                   const newComment = {
                     id: `local-${Date.now()}`,
                     mystery_id: postId,
@@ -1160,31 +1237,32 @@ export default function PostComments({ postId, initialComments = [] }) {
                     is_reply: !!parentId,
                     created_at: new Date().toISOString(),
                     author: {
-                      username: localStorage.getItem('username') || "CurrentUser",
+                      username:
+                        localStorage.getItem("username") || "CurrentUser",
                       profile_picture_url: null,
                     },
                     replies: [],
-                    votes: []
+                    votes: [],
                   };
 
-                  console.log('Creating new comment:', newComment);
+                  console.log("Creating new comment:", newComment);
 
                   // Try the backend API first
-                  const token = localStorage.getItem('token');
+                  const token = localStorage.getItem("token");
                   const apiUrl = `http://localhost:8000/mysteries/${postId}/comments`;
-                  
+
                   // First assume the backend might be down and update the UI immediately
                   // for better user experience
-                  setComments(prev => {
+                  setComments((prev) => {
                     const updatedComments = [...prev];
-                    
+
                     if (parentId) {
                       // It's a reply - find the parent comment and add the reply
-                      return updatedComments.map(comment => {
+                      return updatedComments.map((comment) => {
                         if (comment.id === parentId) {
                           return {
                             ...comment,
-                            replies: [...(comment.replies || []), newComment]
+                            replies: [...(comment.replies || []), newComment],
                           };
                         }
                         return comment;
@@ -1204,60 +1282,71 @@ export default function PostComments({ postId, initialComments = [] }) {
                       category: parentCategory,
                       subcategory: parentCategory,
                       anonymous: false,
-                      is_reply: !!parentId
+                      is_reply: !!parentId,
                     };
 
                     fetch(apiUrl, {
-                      method: 'POST',
+                      method: "POST",
                       headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
                       },
-                      body: JSON.stringify(commentData)
+                      body: JSON.stringify(commentData),
                     })
-                    .then(response => {
-                      if (!response.ok) {
-                        throw new Error(`Error ${response.status}: ${response.statusText}`);
-                      }
-                      return response.json();
-                    })
-                    .then(serverComment => {
-                      console.log('Comment saved to backend:', serverComment);
-                      
-                      // If successful, replace the temporary comment with the server version
-                      setComments(prev => {
-                        return prev.map(comment => {
-                          if (comment.id === newComment.id) {
-                            return {
-                              ...serverComment,
-                              replies: comment.replies || [],
-                            };
-                          }
-                          return comment;
+                      .then((response) => {
+                        if (!response.ok) {
+                          throw new Error(
+                            `Error ${response.status}: ${response.statusText}`
+                          );
+                        }
+                        return response.json();
+                      })
+                      .then((serverComment) => {
+                        console.log("Comment saved to backend:", serverComment);
+
+                        // If successful, replace the temporary comment with the server version
+                        setComments((prev) => {
+                          return prev.map((comment) => {
+                            if (comment.id === newComment.id) {
+                              return {
+                                ...serverComment,
+                                replies: comment.replies || [],
+                              };
+                            }
+                            return comment;
+                          });
+                        });
+
+                        toast.success("Comment saved to server");
+                      })
+                      .catch((error) => {
+                        console.warn(
+                          "Backend comment save failed, using local version:",
+                          error
+                        );
+                        toast.info("Comment saved locally");
+
+                        // Save the comments to local storage as a fallback
+                        setComments((prev) => {
+                          const updatedComments = [...prev];
+                          localStorage.setItem(
+                            `comments-${postId}`,
+                            JSON.stringify(updatedComments)
+                          );
+                          return updatedComments;
                         });
                       });
-                      
-                      toast.success('Comment saved to server');
-                    })
-                    .catch(error => {
-                      console.warn('Backend comment save failed, using local version:', error);
-                      toast.info('Comment saved locally');
-                      
-                      // Save the comments to local storage as a fallback
-                      setComments(prev => {
-                        const updatedComments = [...prev];
-                        localStorage.setItem(`comments-${postId}`, JSON.stringify(updatedComments));
-                        return updatedComments;
-                      });
-                    });
                   } else {
-                    console.warn('No token, saving comment locally only');
-                    toast.info('Comment saved locally (login for server sync)');
-                    
+                    console.warn("No token, saving comment locally only");
+                    toast.info("Comment saved locally (login for server sync)");
+
                     // Save to local storage
-                    setComments(prev => {
+                    setComments((prev) => {
                       const updatedComments = [...prev];
-                      localStorage.setItem(`comments-${postId}`, JSON.stringify(updatedComments));
+                      localStorage.setItem(
+                        `comments-${postId}`,
+                        JSON.stringify(updatedComments)
+                      );
                       return updatedComments;
                     });
                   }

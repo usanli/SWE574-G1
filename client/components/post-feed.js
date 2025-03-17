@@ -30,14 +30,15 @@ export default function PostFeed() {
       setError(null);
 
       try {
-        const category = filter === "solved" || filter === "unsolved" ? filter : "all";
+        const category =
+          filter === "solved" || filter === "unsolved" ? filter : "all";
 
         console.log("Fetching posts with:", {
           page: 1,
           limit: postsPerPage,
           sortBy,
           category,
-          searchQuery
+          searchQuery,
         });
 
         const result = await postService.getPosts(
@@ -47,7 +48,7 @@ export default function PostFeed() {
           category,
           searchQuery
         );
-        
+
         console.log("Fetched posts:", result);
         setPosts(result.posts);
         setHasMore(result.hasMore);
@@ -63,10 +64,10 @@ export default function PostFeed() {
 
     // Always fetch posts when component mounts or dependencies change
     fetchInitialPosts();
-    
+
     // Set up a refresh interval - optional, remove if not desired
     const refreshInterval = setInterval(fetchInitialPosts, 30000); // Refresh every 30 seconds
-    
+
     return () => clearInterval(refreshInterval);
   }, [sortBy, filter, searchQuery]);
 
@@ -76,11 +77,12 @@ export default function PostFeed() {
 
     setLoading(true);
     setError(null);
-    
+
     try {
       const nextPage = page + 1;
-      const category = filter === "solved" || filter === "unsolved" ? filter : "all";
-      
+      const category =
+        filter === "solved" || filter === "unsolved" ? filter : "all";
+
       const result = await postService.getPosts(
         nextPage,
         postsPerPage,
@@ -115,9 +117,7 @@ export default function PostFeed() {
     return (
       <div className="w-full flex flex-col items-center justify-center py-12">
         <p className="text-destructive mb-4">{error}</p>
-        <Button onClick={() => window.location.reload()}>
-          Refresh Page
-        </Button>
+        <Button onClick={() => window.location.reload()}>Refresh Page</Button>
       </div>
     );
   }
@@ -130,7 +130,7 @@ export default function PostFeed() {
         <h3 className="text-xl font-semibold">No posts found</h3>
         {searchQuery && (
           <p className="text-muted-foreground mt-2">
-            No results for "{searchQuery}"
+            No results for &ldquo;{searchQuery}&rdquo;
           </p>
         )}
         {!searchQuery && (
@@ -148,11 +148,13 @@ export default function PostFeed() {
       <div className="mb-4 text-sm text-muted-foreground">
         {searchQuery ? (
           <p>
-            Found {totalResults} result{totalResults !== 1 && "s"} for "
-            {searchQuery}"
+            Found {totalResults} result{totalResults !== 1 && "s"} for &ldquo;
+            {searchQuery}&rdquo;
           </p>
         ) : (
-          <p>Showing {totalResults} post{totalResults !== 1 && "s"}</p>
+          <p>
+            Showing {totalResults} post{totalResults !== 1 && "s"}
+          </p>
         )}
       </div>
 
