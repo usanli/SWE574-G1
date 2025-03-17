@@ -27,6 +27,12 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(mysteries.router)
 app.include_router(comments.router)
+# Add the mystery-specific comment router
+from .routers.comments import mystery_router
+app.include_router(mystery_router)
+# Add the votes router
+from .routers.votes import router as votes_router
+app.include_router(votes_router)
 
 def custom_openapi():
     if app.openapi_schema:

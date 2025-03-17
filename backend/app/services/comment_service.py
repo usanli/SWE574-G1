@@ -41,9 +41,7 @@ class CommentService:
                     detail="Parent comment does not belong to the specified mystery"
                 )
         
-        # Handle is_question flag - translate between frontend and backend categories
-        # The frontend uses lowercase categories, backend uses uppercase
-        # We need to normalize this
+        # Normalize category case - frontend uses lowercase, backend uses uppercase
         category = comment_data.category
         if isinstance(category, str):
             # Convert to uppercase for backend
@@ -69,8 +67,7 @@ class CommentService:
                 "profession": author.get("profession")
             }
         
-        # Set is_question flag based on category for the frontend
-        created_comment["is_question"] = created_comment.get("category", "").upper() == "QUESTION"
+        # No need to set is_question - frontend should use category directly
         
         return CommentResponse(**created_comment)
     
@@ -87,12 +84,7 @@ class CommentService:
             
         comments = CommentModel.list_comments_by_mystery(mystery_id)
         
-        # Set is_question flag for each comment based on category
-        for comment in comments:
-            comment["is_question"] = comment.get("category", "").upper() == "QUESTION"
-            if "replies" in comment:
-                for reply in comment["replies"]:
-                    reply["is_question"] = reply.get("category", "").upper() == "QUESTION"
+        # No need to set is_question flag - frontend should use category directly
         
         return [CommentResponse(**comment) for comment in comments]
     
@@ -131,13 +123,22 @@ class CommentService:
                 detail="Comment not found"
             )
             
-        # Add the vote
-        updated_comment = CommentModel.add_vote(comment_id, user_id, vote_type)
+        # Import here to avoid circular imports
+        from ..models.vote_model import VoteModel
+        
+        # Add the vote using VoteModel
+        VoteModel.create_vote(user_id, comment_id, vote_type, "comment")
+        
+        # Get the updated comment with votes
+        updated_comment = CommentModel.get_comment_by_id(comment_id, include_votes=True)
         if not updated_comment:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to add vote"
+                detail="Failed to retrieve updated comment"
             )
+            
+        # Add votes to the comment for response
+        updated_comment["votes"] = VoteModel.get_votes(comment_id, "comment")
             
         return CommentResponse(**updated_comment)
         
@@ -152,12 +153,21 @@ class CommentService:
                 detail="Comment not found"
             )
             
-        # Remove the vote
-        updated_comment = CommentModel.remove_vote(comment_id, user_id)
+        # Import here to avoid circular imports
+        from ..models.vote_model import VoteModel
+        
+        # Remove the vote using VoteModel
+        VoteModel.remove_vote(user_id, comment_id, "comment")
+        
+        # Get the updated comment with votes
+        updated_comment = CommentModel.get_comment_by_id(comment_id, include_votes=True)
         if not updated_comment:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to remove vote"
+                detail="Failed to retrieve updated comment"
             )
+            
+        # Add votes to the comment for response
+        updated_comment["votes"] = VoteModel.get_votes(comment_id, "comment")
             
         return CommentResponse(**updated_comment) 

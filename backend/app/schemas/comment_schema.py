@@ -63,7 +63,6 @@ class CommentInDB(CommentBase):
 class CommentResponse(CommentInDB):
     author: Optional[UserResponse] = None
     replies: Optional[List['CommentResponse']] = []
-    is_question: Optional[bool] = None
 
     class Config:
         orm_mode = True

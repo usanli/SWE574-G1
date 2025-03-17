@@ -155,10 +155,10 @@ function Comment({
 
   // Get comment type info with fallback
   let commentType = COMMENT_TYPES[comment.category] || COMMENT_TYPES.discussion;
-
-  // For backward compatibility with "identification" category
-  if (comment.category === "identification") {
-    commentType = COMMENT_TYPES.guess;
+  
+  // If it's a question type comment, override with question styling
+  if (comment.category?.toLowerCase() === 'question') {
+    commentType = COMMENT_TYPES.question;
   }
 
   const TypeIcon = commentType.icon;
@@ -593,7 +593,6 @@ export default function PostComments({ postId, initialComments = [] }) {
           ...comment,
           // Ensure these properties exist
           replies: comment.replies || [],
-          is_question: comment.category === 'QUESTION' || comment.subcategory === 'question',
           votes: comment.votes || []
         }));
         
@@ -710,13 +709,13 @@ export default function PostComments({ postId, initialComments = [] }) {
             <h3 className="mb-4 flex items-center text-lg font-semibold">
               <MessageSquare className="mr-2 h-5 w-5" />
               Discussion ({Array.isArray(comments) ? 
-                comments.filter((c) => !c.isQuestion && !c.is_question).length : 0})
+                comments.filter((c) => c.category?.toLowerCase() !== 'question').length : 0})
               {leftCollapsed && <ChevronDown className="ml-2 h-4 w-4" />}
             </h3>
 
             <CommentList
               comments={Array.isArray(comments) ? 
-                comments.filter((c) => !c.isQuestion && !c.is_question) : []}
+                comments.filter((c) => c.category?.toLowerCase() !== 'question') : []}
               category="discussion"
               onVote={(commentId, voteType) => {
                 // In a real app, you would send this to your API
@@ -739,8 +738,7 @@ export default function PostComments({ postId, initialComments = [] }) {
                     profile_picture_url: null,
                   },
                   replies: [],
-                  votes: [],
-                  is_question: COMMENT_TYPES[parentCategory]?.category === "question"
+                  votes: []
                 };
 
                 console.log('Creating new comment:', newComment);
@@ -807,7 +805,6 @@ export default function PostComments({ postId, initialComments = [] }) {
                           return {
                             ...serverComment,
                             replies: comment.replies || [],
-                            is_question: COMMENT_TYPES[parentCategory]?.category === "question"
                           };
                         }
                         return comment;
@@ -865,13 +862,13 @@ export default function PostComments({ postId, initialComments = [] }) {
             <h3 className="mb-4 flex items-center text-lg font-semibold">
               <HelpCircle className="mr-2 h-5 w-5" />
               Questions ({Array.isArray(comments) ? 
-                comments.filter((c) => c.isQuestion || c.is_question).length : 0})
+                comments.filter((c) => c.category?.toLowerCase() === 'question').length : 0})
               {rightCollapsed && <ChevronDown className="ml-2 h-4 w-4" />}
             </h3>
 
             <CommentList
               comments={Array.isArray(comments) ? 
-                comments.filter((c) => c.isQuestion || c.is_question) : []}
+                comments.filter((c) => c.category?.toLowerCase() === 'question') : []}
               category="question"
               onVote={(commentId, voteType) => {
                 // In a real app, you would send this to your API
@@ -894,8 +891,7 @@ export default function PostComments({ postId, initialComments = [] }) {
                     profile_picture_url: null,
                   },
                   replies: [],
-                  votes: [],
-                  is_question: COMMENT_TYPES[parentCategory]?.category === "question"
+                  votes: []
                 };
 
                 console.log('Creating new comment:', newComment);
@@ -962,7 +958,6 @@ export default function PostComments({ postId, initialComments = [] }) {
                           return {
                             ...serverComment,
                             replies: comment.replies || [],
-                            is_question: COMMENT_TYPES[parentCategory]?.category === "question"
                           };
                         }
                         return comment;
@@ -1006,19 +1001,19 @@ export default function PostComments({ postId, initialComments = [] }) {
               <TabsTrigger value="discussion">
                 <MessageSquare className="mr-2 h-4 w-4" />
                 Discussion ({Array.isArray(comments) ? 
-                  comments.filter((c) => !c.isQuestion && !c.is_question).length : 0})
+                  comments.filter((c) => c.category?.toLowerCase() !== 'question').length : 0})
               </TabsTrigger>
               <TabsTrigger value="questions">
                 <HelpCircle className="mr-2 h-4 w-4" />
                 Questions ({Array.isArray(comments) ? 
-                  comments.filter((c) => c.isQuestion || c.is_question).length : 0})
+                  comments.filter((c) => c.category?.toLowerCase() === 'question').length : 0})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="discussion" className="p-6 pt-4">
               <CommentList
                 comments={Array.isArray(comments) ? 
-                  comments.filter((c) => !c.isQuestion && !c.is_question) : []}
+                  comments.filter((c) => c.category?.toLowerCase() !== 'question') : []}
                 category="discussion"
                 onVote={(commentId, voteType) => {
                   // In a real app, you would send this to your API
@@ -1041,8 +1036,7 @@ export default function PostComments({ postId, initialComments = [] }) {
                       profile_picture_url: null,
                     },
                     replies: [],
-                    votes: [],
-                    is_question: COMMENT_TYPES[parentCategory]?.category === "question"
+                    votes: []
                   };
 
                   console.log('Creating new comment:', newComment);
@@ -1109,7 +1103,6 @@ export default function PostComments({ postId, initialComments = [] }) {
                             return {
                               ...serverComment,
                               replies: comment.replies || [],
-                              is_question: COMMENT_TYPES[parentCategory]?.category === "question"
                             };
                           }
                           return comment;
@@ -1148,7 +1141,7 @@ export default function PostComments({ postId, initialComments = [] }) {
             <TabsContent value="questions" className="p-6 pt-4">
               <CommentList
                 comments={Array.isArray(comments) ? 
-                  comments.filter((c) => c.isQuestion || c.is_question) : []}
+                  comments.filter((c) => c.category?.toLowerCase() === 'question') : []}
                 category="question"
                 onVote={(commentId, voteType) => {
                   // In a real app, you would send this to your API
@@ -1171,8 +1164,7 @@ export default function PostComments({ postId, initialComments = [] }) {
                       profile_picture_url: null,
                     },
                     replies: [],
-                    votes: [],
-                    is_question: COMMENT_TYPES[parentCategory]?.category === "question"
+                    votes: []
                   };
 
                   console.log('Creating new comment:', newComment);
@@ -1239,7 +1231,6 @@ export default function PostComments({ postId, initialComments = [] }) {
                             return {
                               ...serverComment,
                               replies: comment.replies || [],
-                              is_question: COMMENT_TYPES[parentCategory]?.category === "question"
                             };
                           }
                           return comment;

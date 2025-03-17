@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any
 import uuid
 
 from ..core.database import comments_collection, users_collection
+from .vote_model import VoteModel
 
 class CommentModel:
     @staticmethod
@@ -22,7 +23,10 @@ class CommentModel:
         
         # Set default values
         comment_data["featured"] = comment_data.get("featured", False)
-        comment_data["votes"] = comment_data.get("votes", [])
+        
+        # Remove votes from the comment data - we'll use the VoteModel instead
+        if "votes" in comment_data:
+            del comment_data["votes"]
         
         # Handle subcategory - use category as fallback if not provided
         if not comment_data.get("subcategory"):
@@ -33,15 +37,23 @@ class CommentModel:
         return comment_data
     
     @staticmethod
-    def get_comment_by_id(comment_id: str) -> Optional[dict]:
+    def get_comment_by_id(comment_id: str, include_votes: bool = False) -> Optional[dict]:
         """Get a comment by ID"""
-        return comments_collection.find_one({"id": comment_id})
+        comment = comments_collection.find_one({"id": comment_id})
+        
+        if comment and include_votes:
+            # Get votes from the VoteModel
+            votes = VoteModel.get_votes(comment_id, "comment")
+            comment["votes"] = votes
+            
+        return comment
     
     @staticmethod
     def list_comments_by_mystery(
         mystery_id: str, 
         include_author: bool = True, 
-        include_replies: bool = True
+        include_replies: bool = True,
+        include_votes: bool = True
     ) -> List[dict]:
         """List all top-level comments for a mystery with optional replies"""
         # Find top-level comments (no parent_id)
@@ -95,17 +107,19 @@ class CommentModel:
                                 "profession": author.get("profession")
                             }
                 
+                if include_votes:
+                    # Add votes for each reply
+                    for reply in replies:
+                        votes = VoteModel.get_votes(reply["id"], "comment")
+                        reply["votes"] = votes
+                
                 comment["replies"] = replies
         
-        # Handle setting is_question flag for each comment
-        for comment in comments:
-            # Set is_question based on category
-            comment["is_question"] = comment.get("category", "").lower() == "question"
-            
-            # Also set for replies
-            if "replies" in comment:
-                for reply in comment["replies"]:
-                    reply["is_question"] = reply.get("category", "").lower() == "question"
+        if include_votes:
+            # Add votes for each comment
+            for comment in comments:
+                votes = VoteModel.get_votes(comment["id"], "comment")
+                comment["votes"] = votes
         
         return comments
     
@@ -128,51 +142,4 @@ class CommentModel:
     def delete_comment(comment_id: str) -> bool:
         """Delete a comment"""
         result = comments_collection.delete_one({"id": comment_id})
-        return result.deleted_count > 0
-        
-    @staticmethod
-    def add_vote(comment_id: str, user_id: str, vote_type: str) -> Optional[dict]:
-        """Add a vote to a comment"""
-        comment = CommentModel.get_comment_by_id(comment_id)
-        if not comment:
-            return None
-            
-        # Check if user already voted
-        existing_votes = comment.get("votes", [])
-        
-        # Remove any existing vote by this user
-        filtered_votes = [v for v in existing_votes if v.get("user_id") != user_id]
-        
-        # Add the new vote
-        filtered_votes.append({
-            "user_id": user_id,
-            "type": vote_type,
-            "created_at": datetime.utcnow()
-        })
-        
-        # Update the comment
-        comments_collection.update_one(
-            {"id": comment_id},
-            {"$set": {"votes": filtered_votes}}
-        )
-        
-        return CommentModel.get_comment_by_id(comment_id)
-        
-    @staticmethod
-    def remove_vote(comment_id: str, user_id: str) -> Optional[dict]:
-        """Remove a vote from a comment"""
-        comment = CommentModel.get_comment_by_id(comment_id)
-        if not comment:
-            return None
-            
-        # Filter out the vote by this user
-        existing_votes = comment.get("votes", [])
-        filtered_votes = [v for v in existing_votes if v.get("user_id") != user_id]
-        
-        # Update the comment
-        comments_collection.update_one(
-            {"id": comment_id},
-            {"$set": {"votes": filtered_votes}}
-        )
-        
-        return CommentModel.get_comment_by_id(comment_id) 
+        return result.deleted_count > 0 
