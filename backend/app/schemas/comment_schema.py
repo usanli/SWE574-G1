@@ -17,15 +17,6 @@ class CommentCategory(str, Enum):
     HINT = "hint"
     EXPERT = "expert"
 
-class VoteType(str, Enum):
-    UPVOTE = "upvote"
-    DOWNVOTE = "downvote"
-
-class CommentVote(BaseModel):
-    user_id: str
-    type: VoteType
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
 class CommentBase(BaseModel):
     content: str
     category: CommentCategory
@@ -55,7 +46,6 @@ class CommentInDB(CommentBase):
     parent_id: Optional[str] = None
     is_reply: bool
     featured: bool = False
-    votes: List[CommentVote] = []
 
     class Config:
         orm_mode = True
