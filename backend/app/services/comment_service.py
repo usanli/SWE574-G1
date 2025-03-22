@@ -2,9 +2,10 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 from datetime import datetime
 
-from ..schemas.comment_schema import CommentCreate, CommentInDB, CommentUpdate, CommentResponse
+from ..schemas.comment_schema import CommentCreate, CommentInDB, CommentUpdate, CommentResponse, VoteInfo
 from ..models.comment_model import CommentModel
 from ..models.mystery_model import MysteryModel
+from ..services.vote_service import VoteService
 
 class CommentService:
     @staticmethod
@@ -41,12 +42,6 @@ class CommentService:
                     detail="Parent comment does not belong to the specified mystery"
                 )
         
-        # Normalize category case - frontend uses lowercase, backend uses uppercase
-        category = comment_data.category
-        if isinstance(category, str):
-            # Convert to uppercase for backend
-            comment_data.category = category.upper()
-        
         comment_dict = comment_data.dict()
         created_comment = CommentModel.create_comment(comment_dict, author_id)
         
@@ -67,12 +62,13 @@ class CommentService:
                 "profession": author.get("profession")
             }
         
-        # No need to set is_question - frontend should use category directly
+        # Add empty vote info for new comment
+        created_comment["votes"] = VoteInfo().dict()
         
         return CommentResponse(**created_comment)
     
     @staticmethod
-    def list_comments_by_mystery(mystery_id: str) -> List[CommentResponse]:
+    def list_comments_by_mystery(mystery_id: str, current_user_id: Optional[str] = None) -> List[CommentResponse]:
         """List all comments for a mystery"""
         # Check if mystery exists
         mystery = MysteryModel.get_mystery_by_id(mystery_id, include_author=False)
@@ -84,7 +80,30 @@ class CommentService:
             
         comments = CommentModel.list_comments_by_mystery(mystery_id)
         
-        # No need to set is_question flag - frontend should use category directly
+        # Collect all comment IDs (top-level and replies)
+        comment_ids = []
+        for comment in comments:
+            comment_ids.append(comment["id"])
+            for reply in comment.get("replies", []):
+                comment_ids.append(reply["id"])
+        
+        # Get vote information for all comments using the VoteModel directly
+        from ..models.vote_model import VoteModel
+        vote_status = VoteModel.get_vote_status(comment_ids, "comment", current_user_id)
+        
+        # Add vote information to comments
+        for comment in comments:
+            if comment["id"] in vote_status:
+                comment["votes"] = vote_status[comment["id"]]
+            else:
+                comment["votes"] = VoteInfo().dict()
+            
+            # Add vote information to replies
+            for reply in comment.get("replies", []):
+                if reply["id"] in vote_status:
+                    reply["votes"] = vote_status[reply["id"]]
+                else:
+                    reply["votes"] = VoteInfo().dict()
         
         return [CommentResponse(**comment) for comment in comments]
     
@@ -110,4 +129,59 @@ class CommentService:
         update_dict = update_data.dict(exclude_unset=True)
         updated_comment = CommentModel.update_comment(comment_id, update_dict)
         
-        return CommentResponse(**updated_comment) 
+        # Get vote information using VoteService
+        updated_comment["votes"] = VoteService.get_vote_info(comment_id, "comment", current_user_id)
+        
+        return CommentResponse(**updated_comment)
+    
+    @staticmethod
+    def validate_comment_for_voting(comment_id: str, user_id: str) -> None:
+        """Validate that a comment exists for voting"""
+        comment = CommentModel.get_comment_by_id(comment_id)
+        if not comment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Comment not found"
+            )
+    
+    @staticmethod
+    def vote_on_comment(comment_id: str, user_id: str, vote_value: int) -> CommentResponse:
+        """Vote on a comment using the VoteService"""
+        # Get the comment
+        comment = CommentModel.get_comment_by_id(comment_id)
+        if not comment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Comment not found"
+            )
+        
+        # Use the VoteService to handle the vote
+        vote_info = VoteService.vote(
+            user_id, 
+            comment_id, 
+            "comment", 
+            vote_value, 
+            CommentService.validate_comment_for_voting
+        )
+        
+        # Add vote information to comment
+        comment["votes"] = vote_info
+        
+        # Get author details
+        from ..models.user_model import UserModel
+        author = UserModel.get_user_by_id(comment["author_id"])
+        if author:
+            comment["author"] = {
+                "id": author["id"],
+                "username": author["username"],
+                "email": author["email"],
+                "name": author.get("name"),
+                "surname": author.get("surname"),
+                "role": author.get("role", "user"),
+                "badges": author.get("badges", []),
+                "bio": author.get("bio"),
+                "country": author.get("country"),
+                "profession": author.get("profession")
+            }
+        
+        return CommentResponse(**comment) 

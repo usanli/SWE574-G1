@@ -17,6 +17,12 @@ class CommentCategory(str, Enum):
     HINT = "hint"
     EXPERT = "expert"
 
+# Add VoteInfo schema
+class VoteInfo(BaseModel):
+    upvote_count: int = 0
+    downvote_count: int = 0
+    user_vote: Optional[int] = None
+
 class CommentBase(BaseModel):
     content: str
     category: CommentCategory
@@ -25,7 +31,7 @@ class CommentBase(BaseModel):
     proof_url: Optional[HttpUrl] = None
 
 class CommentCreate(CommentBase):
-    mystery_id: str
+    mystery_id: Optional[str] = None
     parent_id: Optional[str] = None
     is_reply: Optional[bool] = None
 
@@ -53,13 +59,9 @@ class CommentInDB(CommentBase):
 class CommentResponse(CommentInDB):
     author: Optional[UserResponse] = None
     replies: Optional[List['CommentResponse']] = []
+    votes: VoteInfo = Field(default_factory=lambda: VoteInfo())
 
     class Config:
         orm_mode = True
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        if hasattr(self, 'category'):
-            self.is_question = self.category.lower() == 'question'
 
 CommentResponse.update_forward_refs() 
