@@ -64,4 +64,12 @@ class CommentResponse(CommentInDB):
     class Config:
         orm_mode = True
 
+class CommentResponseWithMystery(CommentResponse):
+    """Comment response that includes mystery title for profile display"""
+    mystery_title: str
+    mystery_id: str
+
+    class Config:
+        orm_mode = True
+
 CommentResponse.update_forward_refs() 

@@ -76,4 +76,15 @@ class UserService:
         # Update user
         updated_user = UserModel.update_user(user_id, update_dict)
         
-        return UserInDB(**updated_user) 
+        return UserInDB(**updated_user)
+    
+    @staticmethod
+    def get_user_by_username(username: str) -> UserInDB:
+        """Get a user by username"""
+        user = UserModel.get_user_by_username(username)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        return UserInDB(**user) 

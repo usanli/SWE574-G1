@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 from datetime import datetime
 
-from ..schemas.comment_schema import CommentCreate, CommentInDB, CommentUpdate, CommentResponse, VoteInfo
+from ..schemas.comment_schema import CommentCreate, CommentInDB, CommentUpdate, CommentResponse, VoteInfo, CommentResponseWithMystery
 from ..models.comment_model import CommentModel
 from ..models.mystery_model import MysteryModel
 from ..services.vote_service import VoteService
@@ -184,4 +184,35 @@ class CommentService:
                 "profession": author.get("profession")
             }
         
-        return CommentResponse(**comment) 
+        return CommentResponse(**comment)
+    
+    @staticmethod
+    def list_comments_by_user(user_id: str, current_user_id: Optional[str] = None) -> List[CommentResponseWithMystery]:
+        """List all comments by a user"""
+        comments = CommentModel.list_comments_by_user(user_id)
+        
+        # Get vote information for all comments
+        comment_ids = [comment["id"] for comment in comments]
+        
+        # Get vote information using VoteModel directly
+        from ..models.vote_model import VoteModel
+        vote_status = VoteModel.get_vote_status(comment_ids, "comment", current_user_id)
+        
+        # Add vote information to comments
+        for comment in comments:
+            if comment["id"] in vote_status:
+                comment["votes"] = vote_status[comment["id"]]
+            else:
+                comment["votes"] = VoteInfo().dict()
+            
+            # Normalize category and subcategory values
+            if "category" in comment and comment["category"]:
+                comment["category"] = comment["category"].lower()
+            if "subcategory" in comment and comment["subcategory"]:
+                comment["subcategory"] = comment["subcategory"].lower()
+        
+        result = []
+        for comment in comments:
+                result.append(CommentResponseWithMystery(**comment))
+                     
+        return result 

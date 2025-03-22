@@ -119,4 +119,21 @@ class CommentModel:
     def delete_comment(comment_id: str) -> bool:
         """Delete a comment"""
         result = comments_collection.delete_one({"id": comment_id})
-        return result.deleted_count > 0 
+        return result.deleted_count > 0
+    
+    @staticmethod
+    def list_comments_by_user(user_id: str) -> List[dict]:
+        """List all comments for a user with related mystery info"""
+        comments = list(comments_collection.find({
+            "author_id": user_id
+        }).sort("created_at", -1))
+        
+        # Add mystery info for each comment
+        from ..models.mystery_model import MysteryModel
+        for comment in comments:
+            mystery = MysteryModel.get_mystery_by_id(comment["mystery_id"], include_author=False)
+            if mystery:
+                comment["mystery_title"] = mystery.get("title", "Unknown Mystery")
+                comment["mystery_id"] = mystery.get("id")
+        
+        return comments 
