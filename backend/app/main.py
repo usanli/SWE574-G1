@@ -5,6 +5,9 @@ from fastapi.openapi.utils import get_openapi
 from .core.config import settings
 from .routers import auth, users, mysteries, comments
 from .core.auth.dependencies import oauth2_scheme
+from .routers.comments import mystery_comments_router
+from .routers.votes import router as votes_router
+
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -26,12 +29,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(mysteries.router)
-app.include_router(comments.router)
-# Add the mystery-specific comment router
-from .routers.comments import mystery_router
-app.include_router(mystery_router)
-# Add the votes router
-from .routers.votes import router as votes_router
+app.include_router(mystery_comments_router)
 app.include_router(votes_router)
 
 def custom_openapi():

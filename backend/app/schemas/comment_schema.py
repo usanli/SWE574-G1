@@ -17,14 +17,11 @@ class CommentCategory(str, Enum):
     HINT = "hint"
     EXPERT = "expert"
 
-class VoteType(str, Enum):
-    UPVOTE = "upvote"
-    DOWNVOTE = "downvote"
-
-class CommentVote(BaseModel):
-    user_id: str
-    type: VoteType
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+# Add VoteInfo schema
+class VoteInfo(BaseModel):
+    upvote_count: int = 0
+    downvote_count: int = 0
+    user_vote: Optional[int] = None
 
 class CommentBase(BaseModel):
     content: str
@@ -34,7 +31,7 @@ class CommentBase(BaseModel):
     proof_url: Optional[HttpUrl] = None
 
 class CommentCreate(CommentBase):
-    mystery_id: str
+    mystery_id: Optional[str] = None
     parent_id: Optional[str] = None
     is_reply: Optional[bool] = None
 
@@ -55,7 +52,6 @@ class CommentInDB(CommentBase):
     parent_id: Optional[str] = None
     is_reply: bool
     featured: bool = False
-    votes: List[CommentVote] = []
 
     class Config:
         orm_mode = True
@@ -63,13 +59,17 @@ class CommentInDB(CommentBase):
 class CommentResponse(CommentInDB):
     author: Optional[UserResponse] = None
     replies: Optional[List['CommentResponse']] = []
+    votes: VoteInfo = Field(default_factory=lambda: VoteInfo())
 
     class Config:
         orm_mode = True
 
-    def __init__(self, **data):
-        super().__init__(**data)
-        if hasattr(self, 'category'):
-            self.is_question = self.category.lower() == 'question'
+class CommentResponseWithMystery(CommentResponse):
+    """Comment response that includes mystery title for profile display"""
+    mystery_title: str
+    mystery_id: str
+
+    class Config:
+        orm_mode = True
 
 CommentResponse.update_forward_refs() 

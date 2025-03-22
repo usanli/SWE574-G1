@@ -108,4 +108,12 @@ class MysteryModel:
     @staticmethod
     def count_mysteries() -> int:
         """Count total non-deleted mysteries"""
-        return mysteries_collection.count_documents({"deleted_at": None}) 
+        return mysteries_collection.count_documents({"deleted_at": None})
+    
+    @staticmethod
+    def list_mysteries_by_author(author_id: str) -> List[dict]:
+        """List all mysteries by a specific author"""
+        mysteries = list(mysteries_collection.find({"author_id": author_id, "deleted_at": None})
+                       .sort("created_at", -1))
+        
+        return mysteries 

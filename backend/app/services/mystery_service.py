@@ -83,4 +83,11 @@ class MysteryService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete mystery"
-            ) 
+            )
+    
+    @staticmethod
+    def list_mysteries_by_author(author_id: str) -> List[MysteryResponse]:
+        """List mysteries by a specific author"""
+        mysteries = MysteryModel.list_mysteries_by_author(author_id)
+        
+        return [MysteryResponse(**mystery) for mystery in mysteries] 

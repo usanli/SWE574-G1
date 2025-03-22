@@ -1,71 +1,49 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Path, status
-from typing import List, Optional, Dict
+from fastapi import APIRouter, Depends, Path, Query, status
+from typing import Dict, Any, Optional
 
 from ..schemas.user_schema import UserInDB
-from ..models.vote_model import VoteModel
+from ..services.vote_service import VoteService
 from ..core.auth.dependencies import get_current_user
 
-router = APIRouter(prefix="/votes", tags=["votes"])
+router = APIRouter(
+    prefix="/votes",
+    tags=["votes"]
+)
 
-@router.post("/{content_type}/{target_id}")
-async def create_vote(
-    target_id: str = Path(..., title="ID of the content to vote on"),
-    content_type: str = Path(..., title="Type of content (comment, mystery, etc)"),
-    vote_type: str = Query(..., title="Type of vote (upvote or downvote)"),
+@router.post("/{entity_type}/{entity_id}", response_model=Dict[str, Any])
+async def vote_on_entity(
+    entity_type: str = Path(..., description="The type of entity to vote on (e.g., 'comment', 'mystery')"),
+    entity_id: str = Path(..., description="The ID of the entity to vote on"),
+    vote_value: int = Query(..., description="Vote value: 1 (upvote), -1 (downvote), 0 (remove vote)"),
     current_user: UserInDB = Depends(get_current_user)
 ):
-    """Create or update a vote"""
-    if vote_type not in ["upvote", "downvote"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Vote type must be 'upvote' or 'downvote'"
-        )
-        
-    vote = VoteModel.create_vote(
-        user_id=current_user.id,
-        target_id=target_id,
-        vote_type=vote_type,
-        content_type=content_type
-    )
+    """
+    Generic endpoint to vote on any entity type
     
-    return {
-        "success": True,
-        "vote": vote,
-        "vote_counts": VoteModel.get_vote_count(target_id, content_type)
-    }
-
-@router.delete("/{content_type}/{target_id}")
-async def remove_vote(
-    target_id: str = Path(..., title="ID of the content to remove vote from"),
-    content_type: str = Path(..., title="Type of content (comment, mystery, etc)"),
-    current_user: UserInDB = Depends(get_current_user)
-):
-    """Remove a vote"""
-    removed = VoteModel.remove_vote(
-        user_id=current_user.id,
-        target_id=target_id,
-        content_type=content_type
-    )
+    - entity_type: The type of entity (e.g., 'comment', 'mystery')
+    - entity_id: The ID of the entity
+    - vote_value: 1 (upvote), -1 (downvote), 0 (remove vote)
+    """
+    validator = None
     
-    return {
-        "success": removed,
-        "vote_counts": VoteModel.get_vote_count(target_id, content_type)
-    }
+    # Import here to avoid circular imports
+    if entity_type == "comment":
+        from ..services.comment_service import CommentService
+        validator = CommentService.validate_comment_for_voting
+    
+    return VoteService.vote(current_user.id, entity_id, entity_type, vote_value, validator)
 
-@router.get("/{content_type}/{target_id}/count")
-async def get_vote_counts(
-    target_id: str = Path(..., title="ID of the content"),
-    content_type: str = Path(..., title="Type of content (comment, mystery, etc)")
+@router.get("/{entity_type}/{entity_id}", response_model=Dict[str, Any])
+async def get_entity_votes(
+    entity_type: str = Path(..., description="The type of entity (e.g., 'comment', 'mystery')"),
+    entity_id: str = Path(..., description="The ID of the entity"),
+    current_user: Optional[UserInDB] = Depends(get_current_user)
 ):
-    """Get vote counts for a content"""
-    return VoteModel.get_vote_count(target_id, content_type)
-
-@router.get("/{content_type}/{target_id}/user")
-async def get_user_vote(
-    target_id: str = Path(..., title="ID of the content"),
-    content_type: str = Path(..., title="Type of content (comment, mystery, etc)"),
-    current_user: UserInDB = Depends(get_current_user)
-):
-    """Get current user's vote for a content"""
-    vote = VoteModel.get_user_vote(current_user.id, target_id, content_type)
-    return {"vote": vote} 
+    """
+    Get vote information for an entity
+    
+    - entity_type: The type of entity (e.g., 'comment', 'mystery')
+    - entity_id: The ID of the entity
+    """
+    user_id = current_user.id if current_user else None
+    return VoteService.get_vote_info(entity_id, entity_type, user_id) 
